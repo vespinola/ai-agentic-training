@@ -97,12 +97,10 @@ The official lab suggests FastAPI plus Next.js. This solution keeps the same pro
 
 ## Demo Recording
 
-A local demo recording of the project is included here.
+A preview that plays directly in the README:
 
-<video src="./demo/lab01-demo.mov" controls muted playsinline width="900">
-  Your browser or GitHub preview may not support inline video playback for this file.
-</video>
+![Lab 01 Demo Preview](./demo/lab01-demo.gif)
 
-Fallback link:
+Full-quality recording:
 
 - [demo/lab01-demo.mov](./demo/lab01-demo.mov)
