@@ -151,6 +151,51 @@ INDEX_HTML = """<!DOCTYPE html>
     .status.error { color: var(--error); }
     .status.success { color: var(--success); }
 
+    .history {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .history h2 {
+      margin: 0 0 12px;
+      font-size: 1.1rem;
+    }
+
+    .history-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .history-item {
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fffaf2;
+    }
+
+    .history-short {
+      display: inline-block;
+      font-weight: 700;
+      color: var(--accent-dark);
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+
+    .history-original {
+      color: var(--muted);
+      word-break: break-all;
+      font-size: 0.95rem;
+    }
+
+    .history-empty {
+      color: var(--muted);
+      margin: 0;
+    }
+
     @media (max-width: 640px) {
       .card { padding: 24px; }
       .actions { flex-direction: column; }
@@ -183,6 +228,12 @@ INDEX_HTML = """<!DOCTYPE html>
       <div>Short URL</div>
       <a class="result-url" id="result-url" href="#" target="_blank" rel="noreferrer"></a>
     </section>
+
+    <section class="history">
+      <h2>Previous short links</h2>
+      <p class="history-empty" id="history-empty">No links created yet.</p>
+      <ul class="history-list" id="history-list"></ul>
+    </section>
   </main>
 
   <script>
@@ -193,12 +244,58 @@ INDEX_HTML = """<!DOCTYPE html>
     const resultUrl = document.getElementById("result-url");
     const submitBtn = document.getElementById("submit-btn");
     const copyBtn = document.getElementById("copy-btn");
+    const historyList = document.getElementById("history-list");
+    const historyEmpty = document.getElementById("history-empty");
 
     let latestShortUrl = "";
 
     function setStatus(message, kind = "") {
       status.textContent = message;
       status.className = `status ${kind}`.trim();
+    }
+
+    function renderHistory(items) {
+      historyList.innerHTML = "";
+      if (!items.length) {
+        historyEmpty.style.display = "block";
+        return;
+      }
+
+      historyEmpty.style.display = "none";
+
+      for (const item of items) {
+        const listItem = document.createElement("li");
+        listItem.className = "history-item";
+
+        const shortLink = document.createElement("a");
+        shortLink.className = "history-short";
+        shortLink.href = item.short_url;
+        shortLink.textContent = item.short_url;
+        shortLink.target = "_blank";
+        shortLink.rel = "noreferrer";
+
+        const original = document.createElement("div");
+        original.className = "history-original";
+        original.textContent = item.original_url;
+
+        listItem.appendChild(shortLink);
+        listItem.appendChild(original);
+        historyList.appendChild(listItem);
+      }
+    }
+
+    async function loadHistory() {
+      try {
+        const response = await fetch("/api/links");
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Unable to load previous links");
+        }
+        renderHistory(data.links || []);
+      } catch (error) {
+        historyEmpty.textContent = "Could not load previous links right now.";
+        historyEmpty.style.display = "block";
+      }
     }
 
     form.addEventListener("submit", async (event) => {
@@ -226,6 +323,7 @@ INDEX_HTML = """<!DOCTYPE html>
         resultPanel.classList.add("visible");
         copyBtn.disabled = false;
         setStatus("Short URL created successfully.", "success");
+        await loadHistory();
       } catch (error) {
         setStatus(error.message || "Something went wrong.", "error");
       } finally {
@@ -242,6 +340,8 @@ INDEX_HTML = """<!DOCTYPE html>
         setStatus("Could not copy automatically. Please copy it manually.", "error");
       }
     });
+
+    loadHistory();
   </script>
 </body>
 </html>
@@ -304,6 +404,19 @@ class URLRepository:
             connection.commit()
         return {"original_url": original_url, "short_code": short_code}
 
+    def list_recent(self, limit: int = 10) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT original_url, short_code, created_at
+                FROM urls
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
 
 def generate_short_code(length: int = 6) -> str:
     return "".join(secrets.choice(ALPHABET) for _ in range(length))
@@ -362,6 +475,20 @@ class ShortenerHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         if self.path == "/":
             self._respond_html(INDEX_HTML)
+            return
+
+        if self.path == "/api/links":
+            base_url = build_base_url(self)
+            links = [
+                {
+                    "original_url": entry["original_url"],
+                    "short_code": entry["short_code"],
+                    "short_url": f"{base_url}/{entry['short_code']}",
+                    "created_at": entry["created_at"],
+                }
+                for entry in self.repository.list_recent()
+            ]
+            self._respond_json({"links": links}, HTTPStatus.OK)
             return
 
         short_code = self.path.lstrip("/")

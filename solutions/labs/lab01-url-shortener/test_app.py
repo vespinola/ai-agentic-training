@@ -39,6 +39,15 @@ class URLShortenerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             create_short_url(self.repository, "not-a-url")
 
+    def test_list_recent_returns_latest_links_first(self) -> None:
+        first = create_short_url(self.repository, "https://example.com/one")
+        second = create_short_url(self.repository, "https://example.com/two")
+
+        recent = self.repository.list_recent()
+
+        self.assertEqual(recent[0]["short_code"], second["short_code"])
+        self.assertEqual(recent[1]["short_code"], first["short_code"])
+
 
 class URLShortenerHTTPTests(unittest.TestCase):
     @classmethod
