@@ -1,0 +1,89 @@
+{
+  "tests": {
+    "code_generation": {
+      "openai": {
+        "provider": "openai",
+        "model": "offline-draft",
+        "response": "def longest_palindromic_substring(s: str) -> str:\n    \"\"\"Return the longest palindromic substring in s.\"\"\"\n    if not s:\n        return \"\"\n    start = end = 0\n\n    def expand(left: int, right: int) -> tuple[int, int]:\n        while left >= 0 and right < len(s) and s[left] == s[right]:\n            left -= 1\n            right += 1\n        return left + 1, right - 1\n\n    for i in range(len(s)):\n        for l, r in (expand(i, i), expand(i, i + 1)):\n            if r - l > end - start:\n                start, end = l, r\n    return s[start:end + 1]\n",
+        "latency_seconds": 0.0,
+        "timestamp": "2026-05-17T22:04:23.477086+00:00",
+        "offline_draft": true
+      },
+      "anthropic": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-latest",
+        "error": "Missing ANTHROPIC_API_KEY"
+      },
+      "gemini": {
+        "provider": "gemini",
+        "model": "gemini-1.5-pro",
+        "error": "Missing GOOGLE_API_KEY"
+      }
+    },
+    "reasoning": {
+      "openai": {
+        "provider": "openai",
+        "model": "offline-draft",
+        "response": "9 sheep are left. The phrase 'all but 9 die' means everything except 9 died, so the remaining number is 9.",
+        "latency_seconds": 0.0,
+        "timestamp": "2026-05-17T22:04:23.477350+00:00",
+        "offline_draft": true
+      },
+      "anthropic": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-latest",
+        "error": "Missing ANTHROPIC_API_KEY"
+      },
+      "gemini": {
+        "provider": "gemini",
+        "model": "gemini-1.5-pro",
+        "error": "Missing GOOGLE_API_KEY"
+      }
+    },
+    "refactoring": {
+      "openai": {
+        "provider": "openai",
+        "model": "offline-draft",
+        "response": "def get_evens(numbers):\n    return [number for number in numbers if number % 2 == 0]\n\nThis is more idiomatic because it iterates directly over the values instead of indexing into the list.",
+        "latency_seconds": 0.0,
+        "timestamp": "2026-05-17T22:04:23.477534+00:00",
+        "offline_draft": true
+      },
+      "anthropic": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-latest",
+        "error": "Missing ANTHROPIC_API_KEY"
+      },
+      "gemini": {
+        "provider": "gemini",
+        "model": "gemini-1.5-pro",
+        "error": "Missing GOOGLE_API_KEY"
+      }
+    },
+    "ambiguous_request": {
+      "openai": {
+        "provider": "openai",
+        "model": "offline-draft",
+        "response": "It depends on where the bottleneck is. I would first profile the app, then check database queries, network calls, rendering hotspots, and caching opportunities.",
+        "latency_seconds": 0.0,
+        "timestamp": "2026-05-17T22:04:23.477697+00:00",
+        "offline_draft": true
+      },
+      "anthropic": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-latest",
+        "error": "Missing ANTHROPIC_API_KEY"
+      },
+      "gemini": {
+        "provider": "gemini",
+        "model": "gemini-1.5-pro",
+        "error": "Missing GOOGLE_API_KEY"
+      }
+    }
+  },
+  "providers_run": [
+    "openai"
+  ],
+  "generated_at": "2026-05-17T22:04:23.457348+00:00",
+  "offline_draft_mode": true
+}
