@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Small local URL shortener for Lab 01."""
+"""Railway-ready backend for the Lab 01 URL shortener."""
 
 from __future__ import annotations
 
 import json
+import os
 import secrets
 import sqlite3
 from http import HTTPStatus
@@ -16,336 +17,7 @@ from urllib.parse import urlparse
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_PATH = BASE_DIR / "url_shortener.db"
 ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-
-INDEX_HTML = """<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>URL Shortener</title>
-  <style>
-    :root {
-      --bg: #f7f3ea;
-      --panel: #fffdf8;
-      --ink: #1f2933;
-      --muted: #667085;
-      --accent: #d06b2f;
-      --accent-dark: #8f4619;
-      --border: #eadcc9;
-      --success: #0f9d58;
-      --error: #c62828;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: "Avenir Next", "Segoe UI", sans-serif;
-      background:
-        radial-gradient(circle at top left, rgba(208, 107, 47, 0.12), transparent 32%),
-        linear-gradient(180deg, #f5efe4 0%, var(--bg) 100%);
-      color: var(--ink);
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 24px;
-    }
-
-    .card {
-      width: min(680px, 100%);
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      box-shadow: 0 20px 50px rgba(70, 43, 21, 0.08);
-      padding: 32px;
-    }
-
-    h1 {
-      margin: 0 0 12px;
-      font-size: clamp(2rem, 4vw, 3rem);
-      line-height: 1;
-      letter-spacing: -0.04em;
-    }
-
-    p {
-      margin: 0 0 24px;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    form {
-      display: grid;
-      gap: 12px;
-    }
-
-    input {
-      width: 100%;
-      padding: 16px 18px;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      font-size: 1rem;
-      color: var(--ink);
-    }
-
-    input:focus {
-      outline: 2px solid rgba(208, 107, 47, 0.25);
-      border-color: var(--accent);
-    }
-
-    .actions {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    button {
-      border: 0;
-      border-radius: 999px;
-      padding: 14px 18px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .primary {
-      background: var(--accent);
-      color: white;
-    }
-
-    .primary:hover {
-      background: var(--accent-dark);
-    }
-
-    .secondary {
-      background: #f3e2d6;
-      color: var(--accent-dark);
-    }
-
-    .panel {
-      margin-top: 20px;
-      padding: 16px;
-      border-radius: 16px;
-      background: #fff8ef;
-      border: 1px solid var(--border);
-      display: none;
-    }
-
-    .panel.visible {
-      display: block;
-    }
-
-    .result-url {
-      word-break: break-all;
-      font-weight: 700;
-      color: var(--accent-dark);
-    }
-
-    .status {
-      min-height: 24px;
-      margin-top: 12px;
-      font-size: 0.95rem;
-    }
-
-    .status.loading { color: var(--muted); }
-    .status.error { color: var(--error); }
-    .status.success { color: var(--success); }
-
-    .history {
-      margin-top: 24px;
-      padding-top: 20px;
-      border-top: 1px solid var(--border);
-    }
-
-    .history h2 {
-      margin: 0 0 12px;
-      font-size: 1.1rem;
-    }
-
-    .history-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: grid;
-      gap: 10px;
-    }
-
-    .history-item {
-      padding: 12px 14px;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: #fffaf2;
-    }
-
-    .history-short {
-      display: inline-block;
-      font-weight: 700;
-      color: var(--accent-dark);
-      margin-bottom: 4px;
-      word-break: break-all;
-    }
-
-    .history-original {
-      color: var(--muted);
-      word-break: break-all;
-      font-size: 0.95rem;
-    }
-
-    .history-empty {
-      color: var(--muted);
-      margin: 0;
-    }
-
-    @media (max-width: 640px) {
-      .card { padding: 24px; }
-      .actions { flex-direction: column; }
-      button { width: 100%; }
-    }
-  </style>
-</head>
-<body>
-  <main class="card">
-    <h1>Shorten a URL</h1>
-    <p>Paste a long link, generate a clean short code, and copy the result.</p>
-
-    <form id="shortener-form">
-      <input
-        id="url-input"
-        type="url"
-        name="url"
-        placeholder="https://example.com/very/long/url"
-        required
-      />
-      <div class="actions">
-        <button class="primary" id="submit-btn" type="submit">Create Short URL</button>
-        <button class="secondary" id="copy-btn" type="button" disabled>Copy Result</button>
-      </div>
-    </form>
-
-    <div class="status" id="status"></div>
-
-    <section class="panel" id="result-panel">
-      <div>Short URL</div>
-      <a class="result-url" id="result-url" href="#" target="_blank" rel="noreferrer"></a>
-    </section>
-
-    <section class="history">
-      <h2>Previous short links</h2>
-      <p class="history-empty" id="history-empty">No links created yet.</p>
-      <ul class="history-list" id="history-list"></ul>
-    </section>
-  </main>
-
-  <script>
-    const form = document.getElementById("shortener-form");
-    const input = document.getElementById("url-input");
-    const status = document.getElementById("status");
-    const resultPanel = document.getElementById("result-panel");
-    const resultUrl = document.getElementById("result-url");
-    const submitBtn = document.getElementById("submit-btn");
-    const copyBtn = document.getElementById("copy-btn");
-    const historyList = document.getElementById("history-list");
-    const historyEmpty = document.getElementById("history-empty");
-
-    let latestShortUrl = "";
-
-    function setStatus(message, kind = "") {
-      status.textContent = message;
-      status.className = `status ${kind}`.trim();
-    }
-
-    function renderHistory(items) {
-      historyList.innerHTML = "";
-      if (!items.length) {
-        historyEmpty.style.display = "block";
-        return;
-      }
-
-      historyEmpty.style.display = "none";
-
-      for (const item of items) {
-        const listItem = document.createElement("li");
-        listItem.className = "history-item";
-
-        const shortLink = document.createElement("a");
-        shortLink.className = "history-short";
-        shortLink.href = item.short_url;
-        shortLink.textContent = item.short_url;
-        shortLink.target = "_blank";
-        shortLink.rel = "noreferrer";
-
-        const original = document.createElement("div");
-        original.className = "history-original";
-        original.textContent = item.original_url;
-
-        listItem.appendChild(shortLink);
-        listItem.appendChild(original);
-        historyList.appendChild(listItem);
-      }
-    }
-
-    async function loadHistory() {
-      try {
-        const response = await fetch("/api/links");
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || "Unable to load previous links");
-        }
-        renderHistory(data.links || []);
-      } catch (error) {
-        historyEmpty.textContent = "Could not load previous links right now.";
-        historyEmpty.style.display = "block";
-      }
-    }
-
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      resultPanel.classList.remove("visible");
-      copyBtn.disabled = true;
-      setStatus("Creating short URL...", "loading");
-      submitBtn.disabled = true;
-
-      try {
-        const response = await fetch("/api/shorten", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: input.value.trim() })
-        });
-
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || "Unable to shorten URL");
-        }
-
-        latestShortUrl = data.short_url;
-        resultUrl.href = latestShortUrl;
-        resultUrl.textContent = latestShortUrl;
-        resultPanel.classList.add("visible");
-        copyBtn.disabled = false;
-        setStatus("Short URL created successfully.", "success");
-        await loadHistory();
-      } catch (error) {
-        setStatus(error.message || "Something went wrong.", "error");
-      } finally {
-        submitBtn.disabled = false;
-      }
-    });
-
-    copyBtn.addEventListener("click", async () => {
-      if (!latestShortUrl) return;
-      try {
-        await navigator.clipboard.writeText(latestShortUrl);
-        setStatus("Short URL copied to clipboard.", "success");
-      } catch (error) {
-        setStatus("Could not copy automatically. Please copy it manually.", "error");
-      }
-    });
-
-    loadHistory();
-  </script>
-</body>
-</html>
-"""
+CORS_ALLOW_ORIGIN = os.getenv("CORS_ALLOW_ORIGIN", "*")
 
 
 def is_valid_url(raw_url: str) -> bool:
@@ -439,8 +111,10 @@ def create_short_url(repository: URLRepository, original_url: str) -> dict[str, 
 
 
 def build_base_url(handler: BaseHTTPRequestHandler) -> str:
+    forwarded_proto = handler.headers.get("X-Forwarded-Proto")
+    scheme = forwarded_proto or "http"
     host = handler.headers.get("Host", "127.0.0.1:8000")
-    return f"http://{host}"
+    return f"{scheme}://{host}"
 
 
 class ShortenerHandler(BaseHTTPRequestHandler):
@@ -449,10 +123,20 @@ class ShortenerHandler(BaseHTTPRequestHandler):
     def log_message(self, format: str, *args: object) -> None:
         return
 
+    def end_headers(self) -> None:
+        self.send_header("Access-Control-Allow-Origin", CORS_ALLOW_ORIGIN)
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        super().end_headers()
+
+    def do_OPTIONS(self) -> None:  # noqa: N802
+        self.send_response(HTTPStatus.NO_CONTENT)
+        self.end_headers()
+
     def do_HEAD(self) -> None:  # noqa: N802
-        if self.path == "/":
+        if self.path in {"/", "/health"}:
             self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
             return
 
@@ -473,8 +157,15 @@ class ShortenerHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self) -> None:  # noqa: N802
-        if self.path == "/":
-            self._respond_html(INDEX_HTML)
+        if self.path == "/" or self.path == "/health":
+            self._respond_json(
+                {
+                    "status": "ok",
+                    "service": "lab01-url-shortener-backend",
+                    "endpoints": ["/api/shorten", "/api/links", "/health", "/{short_code}"],
+                },
+                HTTPStatus.OK,
+            )
             return
 
         if self.path == "/api/links":
@@ -531,17 +222,13 @@ class ShortenerHandler(BaseHTTPRequestHandler):
 
         short_url = f"{build_base_url(self)}/{entry['short_code']}"
         self._respond_json(
-            {"short_code": entry["short_code"], "short_url": short_url},
+            {
+                "short_code": entry["short_code"],
+                "short_url": short_url,
+                "original_url": entry["original_url"],
+            },
             HTTPStatus.CREATED,
         )
-
-    def _respond_html(self, html: str) -> None:
-        payload = html.encode("utf-8")
-        self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(payload)))
-        self.end_headers()
-        self.wfile.write(payload)
 
     def _respond_json(self, data: dict[str, Any], status: HTTPStatus) -> None:
         payload = json.dumps(data).encode("utf-8")
@@ -553,8 +240,10 @@ class ShortenerHandler(BaseHTTPRequestHandler):
 
 
 def run() -> None:
-    server = ThreadingHTTPServer(("127.0.0.1", 8000), ShortenerHandler)
-    print("URL shortener running at http://127.0.0.1:8000")
+    host = "0.0.0.0"
+    port = int(os.getenv("PORT", "8000"))
+    server = ThreadingHTTPServer((host, port), ShortenerHandler)
+    print(f"URL shortener backend running at http://{host}:{port}")
     server.serve_forever()
 
 

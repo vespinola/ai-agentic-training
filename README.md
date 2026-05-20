@@ -20,11 +20,12 @@ What is included:
 ### Lab 01: Vibe Coding Introduction
 
 - [solutions/labs/lab01-url-shortener](./solutions/labs/lab01-url-shortener)
+- [solutions/labs/lab01-url-shortener-frontend](./solutions/labs/lab01-url-shortener-frontend)
 
 What is included:
-- functional local URL shortener
+- Railway-ready backend
+- Vercel-ready frontend
 - SQLite storage
-- browser UI
 - unit tests
 - demo recording
 
@@ -35,10 +36,10 @@ cd solutions/labs/lab01-url-shortener
 python3 app.py
 ```
 
-Open:
+Then open the frontend:
 
 ```text
-http://127.0.0.1:8000
+/Users/vlezcano/Documents/ai-agentic-training/solutions/labs/lab01-url-shortener-frontend/index.html
 ```
 
 Run tests:

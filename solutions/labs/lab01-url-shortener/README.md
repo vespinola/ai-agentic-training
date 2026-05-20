@@ -1,78 +1,124 @@
 # Lab 01 URL Shortener
 
-Functional local solution for Module 1 Lab 01.
+Module 1 Lab 01 split into:
+- `lab01-url-shortener/`: Railway-ready Python backend
+- `lab01-url-shortener-frontend/`: Vercel-ready static frontend
 
-This version is optimized for easy local execution:
-- Python standard library only
-- SQLite for storage
-- single-page browser UI
-- JSON API for shortening
-- redirect support for short codes
-
-## Features
+## Backend Features
 
 - `POST /api/shorten` accepts `{"url": "https://..."}` and returns a short code
+- `GET /api/links` returns recent shortened URLs
+- `GET /health` returns a health response
 - `GET /{short_code}` redirects to the original URL
 - SQLite storage
-- 6-character alphanumeric short codes
 - duplicate URLs return the existing code
-- browser UI with copy button, loading state, and error handling
 
-## Run It Locally
+## Local Development
 
-Follow these steps:
-
-### 1. Open a terminal
-
-Use the terminal inside your editor or a normal system terminal.
-
-### 2. Go to the project folder
+### 1. Run the backend
 
 ```bash
 cd solutions/labs/lab01-url-shortener
-```
-
-### 3. Start the app
-
-```bash
 python3 app.py
 ```
 
-You should see:
-
-```text
-URL shortener running at http://127.0.0.1:8000
-```
-
-Leave that terminal window open while the app is running.
-
-### 4. Open the app in your browser
-
-Copy this URL into your browser:
+The backend will run on:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-### 5. Test it in the page
+### 2. Point the frontend at the backend
 
-In the browser:
+Edit:
 
-1. paste a long URL like `https://example.com/very/long/url`
-2. click `Create Short URL`
-3. copy the generated result
-4. open the short URL to confirm it redirects
+- [../lab01-url-shortener-frontend/config.js](../lab01-url-shortener-frontend/config.js)
 
-### 6. Stop the app when you are done
+Use:
 
-Go back to the terminal where `python3 app.py` is running and press `Ctrl+C`.
+```js
+window.APP_CONFIG = {
+  API_BASE_URL: "http://127.0.0.1:8000"
+};
+```
 
-## Test
+### 3. Open the frontend
+
+Open this file in your browser:
+
+- [../lab01-url-shortener-frontend/index.html](../lab01-url-shortener-frontend/index.html)
+
+If your browser blocks local file fetches, use a tiny local static server instead:
+
+```bash
+cd solutions/labs/lab01-url-shortener-frontend
+python3 -m http.server 4173
+```
+
+Then open:
+
+```text
+http://127.0.0.1:4173
+```
+
+## Tests
 
 ```bash
 cd solutions/labs/lab01-url-shortener
 python3 -m unittest test_app.py
 ```
+
+## Railway Deployment
+
+### Railway backend settings
+
+- Repository: this repo
+- Root directory: leave as repo root
+- Start command:
+
+```bash
+python3 solutions/labs/lab01-url-shortener/app.py
+```
+
+### Railway environment variables
+
+Optional:
+
+```text
+CORS_ALLOW_ORIGIN=https://your-frontend.vercel.app
+```
+
+Notes:
+- the backend already reads `PORT` automatically from Railway
+- SQLite will work for demos, but hosted SQLite is not durable across all platform restarts
+
+## Vercel Deployment
+
+### Vercel frontend settings
+
+- Import the same GitHub repo into Vercel
+- Framework preset: `Other`
+- Root directory:
+
+```text
+solutions/labs/lab01-url-shortener-frontend
+```
+
+### Before deploying frontend
+
+Update:
+
+- [../lab01-url-shortener-frontend/config.js](../lab01-url-shortener-frontend/config.js)
+
+Set:
+
+```js
+window.APP_CONFIG = {
+  API_BASE_URL: "https://your-backend.up.railway.app"
+};
+```
+
+Then redeploy the frontend on Vercel.
 
 ## API Example
 
@@ -81,19 +127,6 @@ curl -X POST http://127.0.0.1:8000/api/shorten \
   -H "Content-Type: application/json" \
   -d '{"url":"https://example.com"}'
 ```
-
-Example response:
-
-```json
-{
-  "short_code": "a1b2c3",
-  "short_url": "http://127.0.0.1:8000/a1b2c3"
-}
-```
-
-## Notes
-
-The official lab suggests FastAPI plus Next.js. This solution keeps the same product behavior but uses only built-in Python modules so it runs locally without installing extra packages.
 
 ## Demo Recording
 
