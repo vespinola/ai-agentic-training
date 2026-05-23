@@ -12,7 +12,7 @@ Module 2 Lab 02 split into:
 - Pydantic request and response validation
 - analyzer client abstraction with:
   - mock analysis for local development
-  - OpenAI-compatible HTTP provider for real LLM calls
+  - Groq support through the OpenAI-compatible API
 - prompt builder for general, security, and performance analysis
 
 ## Local Development
@@ -37,10 +37,38 @@ Optional environment variables:
 
 ```text
 ANALYZER_PROVIDER=mock
-OPENAI_API_KEY=your-key
-OPENAI_MODEL=gpt-4.1-mini
+GROQ_API_KEY=your-groq-key
+GROQ_MODEL=llama-3.1-8b-instant
 CORS_ALLOW_ORIGINS=http://127.0.0.1:4173,https://your-frontend.vercel.app
 ```
+
+Provider notes:
+- `ANALYZER_PROVIDER=mock` uses the built-in heuristic analyzer
+- `ANALYZER_PROVIDER=groq` uses `GROQ_API_KEY`
+- Groq follows the course pattern: API root `https://api.groq.com/openai/v1`, then the app calls `/chat/completions`
+
+### Local `.env` option
+
+You can keep secrets out of your shell history by creating a local file at:
+
+```text
+solutions/labs/lab02-code-analyzer/.env
+```
+
+Example:
+
+```text
+ANALYZER_PROVIDER=groq
+GROQ_API_KEY=your-groq-key
+GROQ_MODEL=llama-3.1-8b-instant
+CORS_ALLOW_ORIGINS=http://127.0.0.1:4173
+```
+
+Notes:
+- this project auto-loads `lab02-code-analyzer/.env` at startup
+- `.env` is ignored by `solutions/labs/lab02-code-analyzer/.gitignore`
+- committed examples should stay in `.env.example`
+- to switch providers locally, change `ANALYZER_PROVIDER` and the matching API key env var
 
 ### 2. Point the frontend at the backend
 
@@ -110,9 +138,9 @@ uvicorn main:app --host 0.0.0.0 --port $PORT
 Recommended:
 
 ```text
-ANALYZER_PROVIDER=openai
-OPENAI_API_KEY=your-key
-OPENAI_MODEL=gpt-4.1-mini
+ANALYZER_PROVIDER=groq
+GROQ_API_KEY=your-groq-key
+GROQ_MODEL=llama-3.1-8b-instant
 CORS_ALLOW_ORIGINS=https://your-frontend.vercel.app
 ```
 

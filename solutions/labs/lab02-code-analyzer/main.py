@@ -4,14 +4,18 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Literal
-from urllib import error, request
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from openai import OpenAI
+from openai import APIConnectionError as OpenAIAPIConnectionError
+from openai import APIStatusError as OpenAIAPIStatusError
 from pydantic import BaseModel, Field
 
 
@@ -26,6 +30,10 @@ SUPPORTED_LANGUAGES = {
     "csharp",
     "cpp",
 }
+
+BASE_DIR = Path(__file__).resolve().parent
+LOGGER = logging.getLogger("lab02-code-analyzer")
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
 
 
 class Issue(BaseModel):
@@ -57,6 +65,27 @@ class AnalyzeResponse(BaseModel):
     provider: str
 
 
+def load_local_env_file() -> None:
+    """Load simple KEY=VALUE pairs from a local .env without overriding real env vars."""
+    env_path = BASE_DIR / ".env"
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip("'").strip('"')
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+load_local_env_file()
+
+
 def parse_cors_origins() -> list[str]:
     raw = os.getenv("CORS_ALLOW_ORIGINS", "*")
     if raw.strip() == "*":
@@ -70,6 +99,10 @@ def build_system_prompt(analysis_type: AnalysisType) -> str:
         "security": "security vulnerabilities, unsafe patterns, secrets handling, and trust boundaries",
         "performance": "performance bottlenecks, unnecessary work, scalability, and resource usage",
     }
+    # Module 02 pattern: RCFG prompt design.
+    # Role: senior software engineer reviewer
+    # Context/Goal: analysis focus varies by analysis_type
+    # Format: strict JSON schema for reliable frontend parsing
     return (
         "You are a senior software engineer performing structured code review. "
         f"Focus on {focus_map[analysis_type]}. "
@@ -85,6 +118,8 @@ def build_system_prompt(analysis_type: AnalysisType) -> str:
 
 
 def build_user_prompt(payload: AnalyzeRequest) -> str:
+    # Module 02 pattern: explicit task framing with concrete input.
+    # This keeps the code, language, and requested analysis type separate from the system prompt.
     return (
         f"Language: {payload.language}\n"
         f"Analysis type: {payload.analysis_type}\n"
@@ -219,9 +254,17 @@ class OpenAICompatibleAnalyzerClient(AnalyzerClient):
     def __init__(self, api_key: str, model: str, base_url: str) -> None:
         self.api_key = api_key
         self.model = model
-        self.base_url = base_url
+        self.base_url = base_url.rstrip("/")
+        self.client = OpenAI(api_key=api_key, base_url=self.base_url)
 
     def analyze(self, payload: AnalyzeRequest) -> AnalyzeResponse:
+        LOGGER.info(
+            "Calling OpenAI-compatible provider model=%s base_url=%s analysis_type=%s language=%s",
+            self.model,
+            self.base_url,
+            payload.analysis_type,
+            payload.language,
+        )
         body = {
             "model": self.model,
             "temperature": 0.2,
@@ -231,27 +274,29 @@ class OpenAICompatibleAnalyzerClient(AnalyzerClient):
                 {"role": "user", "content": build_user_prompt(payload)},
             ],
         }
-        data = json.dumps(body).encode("utf-8")
-        req = request.Request(
-            self.base_url,
-            data=data,
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-            },
-            method="POST",
-        )
-
         try:
-            with request.urlopen(req, timeout=45) as response:
-                raw = json.loads(response.read().decode("utf-8"))
-        except error.HTTPError as exc:
-            message = exc.read().decode("utf-8", errors="ignore")
-            raise HTTPException(status_code=502, detail=f"LLM provider error: {message}") from exc
-        except error.URLError as exc:
-            raise HTTPException(status_code=502, detail=f"Could not reach LLM provider: {exc.reason}") from exc
+            response = self.client.chat.completions.create(**body)
+        except OpenAIAPIStatusError as exc:
+            message = exc.response.text if exc.response is not None else str(exc)
+            LOGGER.error(
+                "OpenAI-compatible provider APIStatusError upstream_status=%s base_url=%s body=%s",
+                exc.status_code,
+                self.base_url,
+                message,
+            )
+            raise HTTPException(
+                status_code=502,
+                detail=f"LLM provider error (upstream {exc.status_code}): {message}",
+            ) from exc
+        except OpenAIAPIConnectionError as exc:
+            LOGGER.error(
+                "OpenAI-compatible provider APIConnectionError base_url=%s reason=%s",
+                self.base_url,
+                exc,
+            )
+            raise HTTPException(status_code=502, detail=f"Could not reach LLM provider: {exc}") from exc
 
-        content = raw["choices"][0]["message"]["content"]
+        content = response.choices[0].message.content
         try:
             parsed = json.loads(content)
         except json.JSONDecodeError as exc:
@@ -274,14 +319,25 @@ class OpenAICompatibleAnalyzerClient(AnalyzerClient):
 
 def get_analyzer_client() -> AnalyzerClient:
     provider = os.getenv("ANALYZER_PROVIDER", "").strip().lower()
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    groq_api_key = os.getenv("GROQ_API_KEY", "").strip()
 
-    if provider == "mock" or not api_key:
+    if provider == "groq":
+        if not groq_api_key:
+            raise HTTPException(
+                status_code=500,
+                detail="ANALYZER_PROVIDER is set to 'groq' but GROQ_API_KEY is missing.",
+            )
+        model = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant").strip()
+        base_url = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1").strip()
+        return OpenAICompatibleAnalyzerClient(api_key=groq_api_key, model=model, base_url=base_url)
+
+    if provider in {"", "mock"}:
         return MockAnalyzerClient()
 
-    model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini").strip()
-    base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1/chat/completions").strip()
-    return OpenAICompatibleAnalyzerClient(api_key=api_key, model=model, base_url=base_url)
+    raise HTTPException(
+        status_code=500,
+        detail="Unsupported ANALYZER_PROVIDER. Use 'mock' or 'groq'.",
+    )
 
 
 app = FastAPI(title="Lab 02 Code Analyzer", version="0.1.0")
@@ -307,7 +363,11 @@ def root() -> dict[str, object]:
 @app.get("/health")
 def health() -> dict[str, str]:
     provider = os.getenv("ANALYZER_PROVIDER", "mock") or "mock"
-    return {"status": "ok", "provider": provider}
+    model_env_map = {
+        "groq": os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
+        "mock": "mock",
+    }
+    return {"status": "ok", "provider": provider, "model": model_env_map.get(provider, "unknown")}
 
 
 @app.post("/api/analyze", response_model=AnalyzeResponse)
