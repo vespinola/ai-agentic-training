@@ -12,6 +12,7 @@ Module 2 Lab 02 split into:
 - Pydantic request and response validation
 - analyzer client abstraction with:
   - mock analysis for local development
+  - OpenAI support through the OpenAI-compatible API
   - Groq support through the OpenAI-compatible API
 - prompt builder for general, security, and performance analysis
 
@@ -37,6 +38,8 @@ Optional environment variables:
 
 ```text
 ANALYZER_PROVIDER=mock
+OPENAI_API_KEY=your-openai-key
+OPENAI_MODEL=gpt-4.1-mini
 GEMINI_API_KEY=your-gemini-key
 GEMINI_MODEL=gemini-2.5-flash
 GROQ_API_KEY=your-groq-key
@@ -46,8 +49,10 @@ CORS_ALLOW_ORIGINS=http://127.0.0.1:4173,https://your-frontend.vercel.app
 
 Provider notes:
 - `ANALYZER_PROVIDER=mock` uses the built-in heuristic analyzer
+- `ANALYZER_PROVIDER=openai` uses `OPENAI_API_KEY`
 - `ANALYZER_PROVIDER=gemini` uses `GEMINI_API_KEY` or `GOOGLE_API_KEY`
 - `ANALYZER_PROVIDER=groq` uses `GROQ_API_KEY`
+- OpenAI uses the API root `https://api.openai.com/v1`, then the app calls `/chat/completions`
 - Groq follows the course pattern: API root `https://api.groq.com/openai/v1`, then the app calls `/chat/completions`
 
 ### Local `.env` option
@@ -61,9 +66,9 @@ solutions/labs/lab02-code-analyzer/.env
 Example:
 
 ```text
-ANALYZER_PROVIDER=gemini
-GEMINI_API_KEY=your-gemini-key
-GEMINI_MODEL=gemini-2.5-flash
+ANALYZER_PROVIDER=openai
+OPENAI_API_KEY=your-openai-key
+OPENAI_MODEL=gpt-4.1-mini
 CORS_ALLOW_ORIGINS=http://127.0.0.1:4173
 ```
 

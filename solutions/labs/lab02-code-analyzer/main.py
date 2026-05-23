@@ -100,31 +100,43 @@ def build_system_prompt(analysis_type: AnalysisType) -> str:
         "security": "security vulnerabilities, unsafe patterns, secrets handling, and trust boundaries",
         "performance": "performance bottlenecks, unnecessary work, scalability, and resource usage",
     }
+    # System prompt = stable instructions that define model behavior.
     # Module 02 pattern: RCFG prompt design.
     # Role: senior software engineer reviewer
-    # Context/Goal: analysis focus varies by analysis_type
+    # Context: this response will be rendered directly in a web UI
+    # Goal: analyze code with the requested focus and produce actionable findings
     # Format: strict JSON schema for reliable frontend parsing
     return (
-        "You are a senior software engineer performing structured code review. "
-        f"Focus on {focus_map[analysis_type]}. "
-        "Return strict JSON only with this exact shape: "
+        "Role: You are a senior software engineer performing structured code review. "
+        "Context: The user will submit one code snippet at a time, and your response will be "
+        "rendered directly in a web application. The output must be consistent, concrete, and "
+        "easy to parse automatically. "
+        f"Goal: Analyze the code with a focus on {focus_map[analysis_type]}. "
+        "Work in this order: understand what the code is doing, identify concrete issues, "
+        "classify each issue, suggest fixes, and then return the final result. "
+        "Format: Return strict JSON only with this exact shape: "
         '{"summary": "...", "issues": [{"severity": "high|medium|low", "line": 1, '
         '"category": "bug|security|performance|style|maintainability", '
         '"description": "...", "suggestion": "..."}], '
         '"suggestions": ["..."], '
         '"metrics": {"complexity": "low|medium|high", "readability": "low|medium|high", '
         '"test_coverage_estimate": "low|medium|high"}}. '
-        "Keep the summary to 2-3 sentences."
+        "Rules: Keep the summary to 2-3 sentences. Use only the allowed severity levels and "
+        "categories. Be specific, avoid generic advice, and do not include markdown, prose "
+        "outside the JSON, or code fences."
     )
 
 
 def build_user_prompt(payload: AnalyzeRequest) -> str:
+    # User prompt = request-specific input for this one analysis run.
     # Module 02 pattern: explicit task framing with concrete input.
-    # This keeps the code, language, and requested analysis type separate from the system prompt.
+    # This keeps the changing request details separate from the stable system behavior above.
     return (
         f"Language: {payload.language}\n"
-        f"Analysis type: {payload.analysis_type}\n"
-        "Review the following code and return only JSON.\n\n"
+        f"Requested analysis type: {payload.analysis_type}\n"
+        "Task: Review the following code snippet and return only the final JSON result.\n"
+        "Focus on concrete findings that can be tied to the actual code shown.\n\n"
+        "Code:\n"
         f"{payload.code}"
     )
 
@@ -408,8 +420,19 @@ class GeminiAnalyzerClient(AnalyzerClient):
 
 def get_analyzer_client() -> AnalyzerClient:
     provider = os.getenv("ANALYZER_PROVIDER", "").strip().lower()
+    openai_api_key = os.getenv("OPENAI_API_KEY", "").strip()
     gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip() or os.getenv("GOOGLE_API_KEY", "").strip()
     groq_api_key = os.getenv("GROQ_API_KEY", "").strip()
+
+    if provider == "openai":
+        if not openai_api_key:
+            raise HTTPException(
+                status_code=500,
+                detail="ANALYZER_PROVIDER is set to 'openai' but OPENAI_API_KEY is missing.",
+            )
+        model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini").strip()
+        base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").strip()
+        return OpenAICompatibleAnalyzerClient(api_key=openai_api_key, model=model, base_url=base_url)
 
     if provider == "gemini":
         if not gemini_api_key:
@@ -436,7 +459,7 @@ def get_analyzer_client() -> AnalyzerClient:
 
     raise HTTPException(
         status_code=500,
-        detail="Unsupported ANALYZER_PROVIDER. Use 'mock', 'groq', or 'gemini'.",
+        detail="Unsupported ANALYZER_PROVIDER. Use 'mock', 'groq', 'gemini', or 'openai'.",
     )
 
 
@@ -464,6 +487,7 @@ def root() -> dict[str, object]:
 def health() -> dict[str, str]:
     provider = os.getenv("ANALYZER_PROVIDER", "mock") or "mock"
     model_env_map = {
+        "openai": os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
         "gemini": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
         "groq": os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
         "mock": "mock",
