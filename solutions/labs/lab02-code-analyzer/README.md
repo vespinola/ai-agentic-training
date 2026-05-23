@@ -37,6 +37,8 @@ Optional environment variables:
 
 ```text
 ANALYZER_PROVIDER=mock
+GEMINI_API_KEY=your-gemini-key
+GEMINI_MODEL=gemini-2.5-flash
 GROQ_API_KEY=your-groq-key
 GROQ_MODEL=llama-3.1-8b-instant
 CORS_ALLOW_ORIGINS=http://127.0.0.1:4173,https://your-frontend.vercel.app
@@ -44,6 +46,7 @@ CORS_ALLOW_ORIGINS=http://127.0.0.1:4173,https://your-frontend.vercel.app
 
 Provider notes:
 - `ANALYZER_PROVIDER=mock` uses the built-in heuristic analyzer
+- `ANALYZER_PROVIDER=gemini` uses `GEMINI_API_KEY` or `GOOGLE_API_KEY`
 - `ANALYZER_PROVIDER=groq` uses `GROQ_API_KEY`
 - Groq follows the course pattern: API root `https://api.groq.com/openai/v1`, then the app calls `/chat/completions`
 
@@ -58,9 +61,9 @@ solutions/labs/lab02-code-analyzer/.env
 Example:
 
 ```text
-ANALYZER_PROVIDER=groq
-GROQ_API_KEY=your-groq-key
-GROQ_MODEL=llama-3.1-8b-instant
+ANALYZER_PROVIDER=gemini
+GEMINI_API_KEY=your-gemini-key
+GEMINI_MODEL=gemini-2.5-flash
 CORS_ALLOW_ORIGINS=http://127.0.0.1:4173
 ```
 

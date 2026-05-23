@@ -10,6 +10,7 @@ import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Literal
+from urllib import error, request
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -317,9 +318,108 @@ class OpenAICompatibleAnalyzerClient(AnalyzerClient):
         return result
 
 
+class GeminiAnalyzerClient(AnalyzerClient):
+    def __init__(self, api_key: str, model: str, base_url: str) -> None:
+        self.api_key = api_key
+        self.model = model
+        self.base_url = base_url.rstrip("/")
+
+    def analyze(self, payload: AnalyzeRequest) -> AnalyzeResponse:
+        LOGGER.info(
+            "Calling Gemini provider model=%s base_url=%s analysis_type=%s language=%s",
+            self.model,
+            self.base_url,
+            payload.analysis_type,
+            payload.language,
+        )
+        body = {
+            "system_instruction": {
+                "parts": [{"text": build_system_prompt(payload.analysis_type)}]
+            },
+            "contents": [
+                {
+                    "parts": [{"text": build_user_prompt(payload)}],
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0.2,
+                "responseMimeType": "application/json",
+            },
+        }
+        data = json.dumps(body).encode("utf-8")
+        url = f"{self.base_url}/models/{self.model}:generateContent"
+        req = request.Request(
+            url,
+            data=data,
+            headers={
+                "x-goog-api-key": self.api_key,
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+
+        try:
+            with request.urlopen(req, timeout=45) as response:
+                raw = json.loads(response.read().decode("utf-8"))
+        except error.HTTPError as exc:
+            message = exc.read().decode("utf-8", errors="ignore")
+            LOGGER.error(
+                "Gemini provider HTTPError upstream_status=%s url=%s body=%s",
+                exc.code,
+                url,
+                message,
+            )
+            raise HTTPException(
+                status_code=502,
+                detail=f"Gemini provider error (upstream {exc.code}): {message}",
+            ) from exc
+        except error.URLError as exc:
+            LOGGER.error(
+                "Gemini provider URLError url=%s reason=%s",
+                url,
+                exc.reason,
+            )
+            raise HTTPException(status_code=502, detail=f"Could not reach Gemini provider: {exc.reason}") from exc
+
+        try:
+            content = raw["candidates"][0]["content"]["parts"][0]["text"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise HTTPException(status_code=502, detail="Gemini response did not include text content.") from exc
+
+        try:
+            parsed = json.loads(content)
+        except json.JSONDecodeError as exc:
+            raise HTTPException(status_code=502, detail="Gemini response was not valid JSON.") from exc
+
+        try:
+            result = AnalyzeResponse(
+                summary=parsed["summary"],
+                issues=parsed["issues"],
+                suggestions=parsed["suggestions"],
+                metrics=parsed["metrics"],
+                analysis_type=payload.analysis_type,
+                provider=f"gemini:{self.model}",
+            )
+        except KeyError as exc:
+            raise HTTPException(status_code=502, detail=f"Gemini response missed field: {exc.args[0]}") from exc
+
+        return result
+
+
 def get_analyzer_client() -> AnalyzerClient:
     provider = os.getenv("ANALYZER_PROVIDER", "").strip().lower()
+    gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip() or os.getenv("GOOGLE_API_KEY", "").strip()
     groq_api_key = os.getenv("GROQ_API_KEY", "").strip()
+
+    if provider == "gemini":
+        if not gemini_api_key:
+            raise HTTPException(
+                status_code=500,
+                detail="ANALYZER_PROVIDER is set to 'gemini' but GEMINI_API_KEY is missing.",
+            )
+        model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+        base_url = os.getenv("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta").strip()
+        return GeminiAnalyzerClient(api_key=gemini_api_key, model=model, base_url=base_url)
 
     if provider == "groq":
         if not groq_api_key:
@@ -336,7 +436,7 @@ def get_analyzer_client() -> AnalyzerClient:
 
     raise HTTPException(
         status_code=500,
-        detail="Unsupported ANALYZER_PROVIDER. Use 'mock' or 'groq'.",
+        detail="Unsupported ANALYZER_PROVIDER. Use 'mock', 'groq', or 'gemini'.",
     )
 
 
@@ -364,6 +464,7 @@ def root() -> dict[str, object]:
 def health() -> dict[str, str]:
     provider = os.getenv("ANALYZER_PROVIDER", "mock") or "mock"
     model_env_map = {
+        "gemini": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
         "groq": os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
         "mock": "mock",
     }
