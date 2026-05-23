@@ -7,6 +7,7 @@ This repository now contains my course work, working solutions, and companion no
 ### Student Notes
 
 - [student-notes/module-1-fast-track.md](./student-notes/module-1-fast-track.md)
+- [student-notes/lab02-code-analyzer-fast-track.md](./student-notes/lab02-code-analyzer-fast-track.md)
 
 ### Module 1 Exercise
 
@@ -28,6 +29,18 @@ What is included:
 - SQLite storage
 - unit tests
 - demo recording
+
+### Lab 02: Code Analyzer Agent
+
+- [solutions/labs/lab02-code-analyzer](./solutions/labs/lab02-code-analyzer)
+- [solutions/labs/lab02-code-analyzer-frontend](./solutions/labs/lab02-code-analyzer-frontend)
+
+What is included:
+- Render-ready FastAPI backend scaffold
+- Vercel-ready frontend scaffold
+- prompt-driven analysis flow
+- mock analyzer plus OpenAI-compatible provider hook
+- student fast-track notes
 
 ## Lab 01 Quick Start
 
@@ -64,3 +77,4 @@ python3 -m unittest test_app.py
 - Module 1 fast-track notes: done
 - Module 1 model comparison exercise: done
 - Lab 01 URL shortener: done
+- Lab 02 code analyzer scaffold: done

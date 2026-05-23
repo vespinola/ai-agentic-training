@@ -7,6 +7,7 @@ These notes are meant to sit alongside the official content in `theory/`, `guide
 ## Available Notes
 
 - [module-1-fast-track.md](./module-1-fast-track.md)
+- [lab02-code-analyzer-fast-track.md](./lab02-code-analyzer-fast-track.md)
 
 ## How To Use
 

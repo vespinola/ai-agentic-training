@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lab 02 Code Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="hero-card">
+        <p class="eyebrow">Module 2 · Prompting</p>
+        <h1>Code Analyzer Agent</h1>
+        <p class="hero-copy">
+          Paste code, choose an analysis focus, and review structured findings from your backend.
+        </p>
+      </section>
+
+      <section class="workspace">
+        <form id="analyzer-form" class="panel panel-form">
+          <div class="panel-heading">
+            <h2>Input</h2>
+            <p>Test the API shape before wiring a real provider.</p>
+          </div>
+
+          <label class="field">
+            <span>Language</span>
+            <select id="language-select">
+              <option value="python">Python</option>
+              <option value="javascript">JavaScript</option>
+              <option value="typescript">TypeScript</option>
+              <option value="java">Java</option>
+              <option value="go">Go</option>
+              <option value="ruby">Ruby</option>
+              <option value="csharp">C#</option>
+              <option value="cpp">C++</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Analysis Type</span>
+            <select id="analysis-type-select">
+              <option value="general">General</option>
+              <option value="security">Security</option>
+              <option value="performance">Performance</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Upload File</span>
+            <input id="file-input" type="file" />
+          </label>
+
+          <label class="field">
+            <span>Code</span>
+            <textarea
+              id="code-input"
+              rows="16"
+              placeholder="Paste a function, module, or snippet here..."
+            >password = "secret"
+print(password)
+
+def calculate_total(items):
+    total = 0
+    for item in items:
+        total += item["price"]
+    return total
+</textarea>
+          </label>
+
+          <div class="action-row">
+            <button id="analyze-btn" type="submit">Analyze Code</button>
+            <p id="status" class="status"></p>
+          </div>
+        </form>
+
+        <section class="panel panel-results">
+          <div class="panel-heading">
+            <h2>Results</h2>
+            <p>Structured output for frontend rendering and deploy demos.</p>
+          </div>
+
+          <div id="result-empty" class="empty-state">
+            Submit code to display summary, issues, suggestions, and metrics.
+          </div>
+
+          <div id="result-content" class="result-content hidden">
+            <article class="result-block">
+              <h3>Summary</h3>
+              <p id="summary-text"></p>
+            </article>
+
+            <article class="result-block">
+              <div class="block-header">
+                <h3>Issues</h3>
+                <span id="provider-badge" class="provider-badge"></span>
+              </div>
+              <ul id="issues-list" class="issues-list"></ul>
+            </article>
+
+            <article class="result-block">
+              <h3>Suggestions</h3>
+              <ul id="suggestions-list" class="simple-list"></ul>
+            </article>
+
+            <article class="result-block">
+              <h3>Metrics</h3>
+              <div id="metrics-grid" class="metrics-grid"></div>
+            </article>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./config.js"></script>
+    <script src="./script.js"></script>
+  </body>
+</html>
