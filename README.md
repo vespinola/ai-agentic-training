@@ -39,8 +39,9 @@ What is included:
 - Render-ready FastAPI backend scaffold
 - Vercel-ready frontend scaffold
 - prompt-driven analysis flow
-- mock analyzer plus OpenAI-compatible provider hook
+- mock analyzer plus Groq provider support
 - student fast-track notes
+- demo recording
 
 ## Lab 01 Quick Start
 
@@ -61,6 +62,43 @@ Run tests:
 cd solutions/labs/lab01-url-shortener
 python3 -m unittest test_app.py
 ```
+
+Lab 01 demo assets:
+- [solutions/labs/lab01-url-shortener/demo/lab01-demo.gif](./solutions/labs/lab01-url-shortener/demo/lab01-demo.gif)
+- [solutions/labs/lab01-url-shortener/demo/lab01-demo.mov](./solutions/labs/lab01-url-shortener/demo/lab01-demo.mov)
+
+## Lab 02 Quick Start
+
+Backend:
+
+```bash
+cd solutions/labs/lab02-code-analyzer
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+Frontend:
+
+```bash
+cd solutions/labs/lab02-code-analyzer-frontend
+python3 -m http.server 4173
+```
+
+Then open:
+
+```text
+http://127.0.0.1:4173
+```
+
+Lab 02 notes and setup:
+- [student-notes/lab02-code-analyzer-fast-track.md](./student-notes/lab02-code-analyzer-fast-track.md)
+- [solutions/labs/lab02-code-analyzer/README.md](./solutions/labs/lab02-code-analyzer/README.md)
+
+Lab 02 demo assets:
+- [solutions/labs/lab02-code-analyzer/demo/lab02-demo.gif](./solutions/labs/lab02-code-analyzer/demo/lab02-demo.gif)
+- [solutions/labs/lab02-code-analyzer/demo/lab02-demo.mov](./solutions/labs/lab02-code-analyzer/demo/lab02-demo.mov)
 
 ## Repository Structure
 

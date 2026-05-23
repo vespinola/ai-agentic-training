@@ -183,3 +183,13 @@ curl -X POST http://127.0.0.1:8000/api/analyze \
     "code": "password = \"secret\"\nprint(password)\n"
   }'
 ```
+
+## Demo Recording
+
+A preview that plays directly in the README:
+
+![Lab 02 Demo Preview](./demo/lab02-demo.gif)
+
+Full-quality recording:
+
+- [demo/lab02-demo.mov](./demo/lab02-demo.mov)
