@@ -8,6 +8,7 @@ This repository now contains my course work, working solutions, and companion no
 
 - [student-notes/module-1-fast-track.md](./student-notes/module-1-fast-track.md)
 - [student-notes/lab02-code-analyzer-fast-track.md](./student-notes/lab02-code-analyzer-fast-track.md)
+- [student-notes/lab03-migration-workflow-fast-track.md](./student-notes/lab03-migration-workflow-fast-track.md)
 
 ### Module 1 Exercise
 
@@ -40,6 +41,19 @@ What is included:
 - Vercel-ready frontend scaffold
 - prompt-driven analysis flow
 - mock analyzer plus Groq provider support
+- student fast-track notes
+- demo recording
+
+### Lab 03: Migration Workflow Agent
+
+- [solutions/labs/lab03-migration-workflow](./solutions/labs/lab03-migration-workflow)
+- [solutions/labs/lab03-migration-workflow-frontend](./solutions/labs/lab03-migration-workflow-frontend)
+
+What is included:
+- Render-ready FastAPI backend scaffold
+- Vercel-ready frontend scaffold
+- four-phase migration workflow
+- mock migration plus Groq/OpenAI/Gemini provider support
 - student fast-track notes
 - demo recording
 
@@ -100,6 +114,39 @@ Lab 02 demo assets:
 - [solutions/labs/lab02-code-analyzer/demo/lab02-demo.gif](./solutions/labs/lab02-code-analyzer/demo/lab02-demo.gif)
 - [solutions/labs/lab02-code-analyzer/demo/lab02-demo.mov](./solutions/labs/lab02-code-analyzer/demo/lab02-demo.mov)
 
+## Lab 03 Quick Start
+
+Backend:
+
+```bash
+cd solutions/labs/lab03-migration-workflow
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+Frontend:
+
+```bash
+cd solutions/labs/lab03-migration-workflow-frontend
+python3 -m http.server 4173
+```
+
+Then open:
+
+```text
+http://127.0.0.1:4173
+```
+
+Lab 03 notes and setup:
+- [student-notes/lab03-migration-workflow-fast-track.md](./student-notes/lab03-migration-workflow-fast-track.md)
+- [solutions/labs/lab03-migration-workflow/README.md](./solutions/labs/lab03-migration-workflow/README.md)
+
+Lab 03 demo assets:
+- [solutions/labs/lab03-migration-workflow/demo/lab03-demo.gif](./solutions/labs/lab03-migration-workflow/demo/lab03-demo.gif)
+- [solutions/labs/lab03-migration-workflow/demo/lab03-demo.mov](./solutions/labs/lab03-migration-workflow/demo/lab03-demo.mov)
+
 ## Repository Structure
 
 ```text
@@ -116,3 +163,4 @@ Lab 02 demo assets:
 - Module 1 model comparison exercise: done
 - Lab 01 URL shortener: done
 - Lab 02 code analyzer scaffold: done
+- Lab 03 migration workflow agent: done

@@ -190,3 +190,13 @@ curl -X POST http://127.0.0.1:8000/api/migrate \
     ]
   }'
 ```
+
+## Demo Recording
+
+A preview that plays directly in the README:
+
+![Lab 03 Demo Preview](./demo/lab03-demo.gif)
+
+Full-quality recording:
+
+- [demo/lab03-demo.mov](./demo/lab03-demo.mov)
