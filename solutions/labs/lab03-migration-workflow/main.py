@@ -146,6 +146,37 @@ class MigrationState(BaseModel):
     errors: list[str] = Field(default_factory=list)
 
 
+def normalize_human_review_items(value: object) -> list[str]:
+    # Some providers return human_review as strings, while others return
+    # structured objects such as {"description": "...", "file_path": "main.py"}.
+    # We normalize both shapes into plain strings so verification stays robust.
+    if not isinstance(value, list):
+        return []
+
+    normalized: list[str] = []
+    for item in value:
+        if isinstance(item, str):
+            text = item.strip()
+            if text:
+                normalized.append(text)
+            continue
+
+        if isinstance(item, dict):
+            description = str(item.get("description", "")).strip()
+            file_path = str(item.get("file_path", "")).strip()
+            if description and file_path:
+                normalized.append(f"{file_path}: {description}")
+            elif description:
+                normalized.append(description)
+            continue
+
+        text = str(item).strip()
+        if text:
+            normalized.append(text)
+
+    return normalized
+
+
 def load_local_env_file() -> None:
     """Load simple KEY=VALUE pairs from a local .env without overriding real env vars."""
     env_path = BASE_DIR / ".env"
@@ -703,6 +734,7 @@ class OpenAICompatibleMigrationClient(MigrationClient):
             build_phase_system_prompt("verification"),
             build_verification_user_prompt(payload, analysis, plan, migrated_files),
         )
+        parsed["human_review"] = normalize_human_review_items(parsed.get("human_review", []))
         return VerificationResult(**parsed)
 
 
@@ -804,6 +836,7 @@ class GeminiMigrationClient(MigrationClient):
             build_phase_system_prompt("verification"),
             build_verification_user_prompt(payload, analysis, plan, migrated_files),
         )
+        parsed["human_review"] = normalize_human_review_items(parsed.get("human_review", []))
         return VerificationResult(**parsed)
 
 
