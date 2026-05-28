@@ -113,6 +113,12 @@ h1 {
   gap: 12px;
 }
 
+.files-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .panel-heading,
 .files-header,
 .block-header {
@@ -247,11 +253,19 @@ button:disabled {
   background: linear-gradient(135deg, var(--warm) 0%, #ad4925 100%);
 }
 
+.secondary-button-alt {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+}
+
 .ghost-button {
   padding: 0;
   color: var(--warm);
   background: transparent;
   font-weight: 700;
+}
+
+.hidden-file-input {
+  display: none;
 }
 
 .status {

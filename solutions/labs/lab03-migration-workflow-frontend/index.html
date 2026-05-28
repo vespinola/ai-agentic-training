@@ -54,10 +54,14 @@
                 <h3>Source Files</h3>
                 <p>Add one or more files to migrate.</p>
               </div>
-              <button id="add-file-btn" class="secondary-button" type="button">Add File</button>
+              <div class="files-actions">
+                <button id="upload-file-btn" class="secondary-button secondary-button-alt" type="button">Upload File</button>
+                <button id="add-file-btn" class="secondary-button" type="button">Add File</button>
+              </div>
             </div>
 
             <div id="files-list" class="files-list"></div>
+            <input id="hidden-file-input" type="file" class="hidden-file-input" />
           </section>
 
           <div class="action-row">

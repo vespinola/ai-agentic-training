@@ -5,9 +5,11 @@ const form = document.getElementById("migration-form");
 const sourceFramework = document.getElementById("source-framework");
 const targetFramework = document.getElementById("target-framework");
 const addFileBtn = document.getElementById("add-file-btn");
+const uploadFileBtn = document.getElementById("upload-file-btn");
 const migrateBtn = document.getElementById("migrate-btn");
 const filesList = document.getElementById("files-list");
 const fileTemplate = document.getElementById("file-template");
+const hiddenFileInput = document.getElementById("hidden-file-input");
 const status = document.getElementById("status");
 const resultEmpty = document.getElementById("result-empty");
 const resultContent = document.getElementById("result-content");
@@ -108,6 +110,15 @@ function createFileCard(path = "", content = "") {
   });
 
   filesList.appendChild(fragment);
+}
+
+async function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error(`Could not read ${file.name}.`));
+    reader.readAsText(file);
+  });
 }
 
 function readFilesFromForm() {
@@ -236,7 +247,25 @@ function seedDefaultExample() {
 }
 
 addFileBtn.addEventListener("click", () => createFileCard());
+uploadFileBtn.addEventListener("click", () => hiddenFileInput.click());
 sourceFramework.addEventListener("change", applyPairDefaults);
+
+hiddenFileInput.addEventListener("change", async (event) => {
+  const [file] = event.target.files || [];
+  if (!file) {
+    return;
+  }
+
+  try {
+    const content = await readFileAsText(file);
+    createFileCard(file.name, content);
+    setStatus(`Loaded ${file.name}.`, "success");
+  } catch (error) {
+    setStatus(error.message || "Unable to load file.", "error");
+  } finally {
+    hiddenFileInput.value = "";
+  }
+});
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
