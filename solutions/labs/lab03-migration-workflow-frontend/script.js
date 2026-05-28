@@ -195,8 +195,11 @@ function escapeHtml(value) {
 function renderFileOutputs(sourceFiles, migratedFiles) {
   filesOutput.innerHTML = "";
 
-  migratedFiles.forEach((file) => {
-    const source = sourceFiles.find((item) => item.path === file.path);
+  migratedFiles.forEach((file, index) => {
+    const source =
+      sourceFiles.find((item) => item.path === file.path) ||
+      sourceFiles[index] ||
+      null;
     const wrapper = document.createElement("article");
     wrapper.className = "diff-card";
 
@@ -209,7 +212,7 @@ function renderFileOutputs(sourceFiles, migratedFiles) {
     grid.innerHTML = `
       <section>
         <h5>Before</h5>
-        <pre><code>${escapeHtml((source && source.content) || "")}</code></pre>
+        <pre><code>${escapeHtml((source && source.content) || "Source file content could not be matched by path, so no original content was available.")}</code></pre>
       </section>
       <section>
         <h5>After</h5>
