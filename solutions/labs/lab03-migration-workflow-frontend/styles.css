@@ -117,12 +117,23 @@ h1 {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .panel-heading,
 .files-header,
 .block-header {
   align-items: end;
+}
+
+.files-header {
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.files-header h3,
+.files-header p {
+  margin-bottom: 0;
 }
 
 .panel-heading {
