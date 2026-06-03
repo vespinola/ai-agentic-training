@@ -69,6 +69,7 @@ What is included:
 - code-aware chunking and grounded query flow
 - retrieval metrics plus LLM-as-judge style evaluation
 - bundled evaluation dataset and dataset guide
+- Render/Vercel deployment-ready setup
 - student fast-track notes
 - demo recording
 
