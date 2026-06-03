@@ -66,9 +66,17 @@
               ></textarea>
             </label>
 
-            <label class="field field-inline">
-              <span>Top K</span>
-              <input id="top-k-input" type="number" min="1" max="8" value="4" />
+            <label class="field field-inline field-wide">
+              <span>Retrieved Source Count</span>
+              <select id="top-k-input">
+                <option value="3">3 chunks · tighter answers</option>
+                <option value="4" selected>4 chunks · balanced default</option>
+                <option value="5">5 chunks · more context</option>
+                <option value="6">6 chunks · broader search</option>
+              </select>
+              <small class="field-help">
+                This controls how many code chunks the RAG system retrieves before answering.
+              </small>
             </label>
 
             <div class="action-row">
