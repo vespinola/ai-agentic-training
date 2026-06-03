@@ -1,0 +1,62 @@
+[
+  {
+    "id": "q1",
+    "question": "Which function hashes passwords?",
+    "expected_answer": "Password hashing is implemented in auth.py by the hash_password function.",
+    "relevant_docs": ["auth.py::function::hash_password::8"]
+  },
+  {
+    "id": "q2",
+    "question": "Where is password verification handled?",
+    "expected_answer": "Password verification is handled in auth.py by verify_password.",
+    "relevant_docs": ["auth.py::function::verify_password::12"]
+  },
+  {
+    "id": "q3",
+    "question": "Which function creates auth tokens?",
+    "expected_answer": "Token creation happens in auth.py inside create_token.",
+    "relevant_docs": ["auth.py::function::create_token::16"]
+  },
+  {
+    "id": "q4",
+    "question": "Where is a token parsed into user_id and issued_at?",
+    "expected_answer": "Token parsing is implemented in auth.py by parse_token.",
+    "relevant_docs": ["auth.py::function::parse_token::21"]
+  },
+  {
+    "id": "q5",
+    "question": "Which function creates a user record and returns a token?",
+    "expected_answer": "User creation is implemented in users.py by create_user, which returns both the user and a token.",
+    "relevant_docs": ["users.py::function::create_user::6"]
+  },
+  {
+    "id": "q6",
+    "question": "Where does the code search for a user by email?",
+    "expected_answer": "Email lookup is handled in users.py by find_user_by_email.",
+    "relevant_docs": ["users.py::function::find_user_by_email::12"]
+  },
+  {
+    "id": "q7",
+    "question": "Which function logs a user in?",
+    "expected_answer": "Login logic is implemented in users.py by the login function.",
+    "relevant_docs": ["users.py::function::login::19"]
+  },
+  {
+    "id": "q8",
+    "question": "Where are required registration fields checked?",
+    "expected_answer": "Registration field validation is done in app.py by register_handler.",
+    "relevant_docs": ["app.py::function::register_handler::4"]
+  },
+  {
+    "id": "q9",
+    "question": "Which function returns invalid credentials when login fails?",
+    "expected_answer": "The invalid credentials response is returned by login_handler in app.py.",
+    "relevant_docs": ["app.py::function::login_handler::11"]
+  },
+  {
+    "id": "q10",
+    "question": "Where is the sample service health response defined?",
+    "expected_answer": "The health response is defined in app.py by health_handler.",
+    "relevant_docs": ["app.py::function::health_handler::25"]
+  }
+]

@@ -1,0 +1,4 @@
+.env
+rag_index.json
+__pycache__/
+*.pyc

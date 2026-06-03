@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lab 04 RAG System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="hero-card">
+        <p class="eyebrow">Module 4 · RAG & Evaluation</p>
+        <h1>Codebase RAG System</h1>
+        <p class="hero-copy">
+          Index code, ask grounded questions, and run retrieval plus generation evaluation in one
+          flow. This frontend is designed to make chunking, sources, and metrics visible.
+        </p>
+      </section>
+
+      <section class="workspace">
+        <div class="left-column">
+          <form id="index-form" class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>1. Index Code Files</h2>
+                <p>Use the sample codebase or upload your own files before querying.</p>
+              </div>
+              <div class="button-stack">
+                <button id="load-sample-btn" class="secondary-button" type="button">Load Sample</button>
+                <button id="upload-file-btn" class="secondary-button secondary-button-alt" type="button">Upload File</button>
+                <button id="add-file-btn" class="secondary-button tertiary" type="button">Add File</button>
+              </div>
+            </div>
+
+            <div id="files-list" class="files-list"></div>
+            <input id="hidden-file-input" type="file" class="hidden-file-input" multiple />
+
+            <div class="action-row">
+              <button id="index-btn" type="submit">Index Files</button>
+              <p id="index-status" class="status"></p>
+            </div>
+
+            <div id="index-summary" class="info-card hidden"></div>
+          </form>
+
+          <form id="query-form" class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>2. Ask About the Code</h2>
+                <p>The response should stay grounded in the indexed snippets.</p>
+              </div>
+            </div>
+
+            <label class="field">
+              <span>Question</span>
+              <textarea
+                id="question-input"
+                rows="5"
+                placeholder="Where is token creation implemented?"
+              ></textarea>
+            </label>
+
+            <label class="field field-inline">
+              <span>Top K</span>
+              <input id="top-k-input" type="number" min="1" max="8" value="4" />
+            </label>
+
+            <div class="action-row">
+              <button id="query-btn" type="submit">Run Query</button>
+              <p id="query-status" class="status"></p>
+            </div>
+
+            <div id="query-empty" class="empty-state">
+              Index a codebase, then ask a question to render the grounded answer and source snippets.
+            </div>
+
+            <div id="query-result" class="result-stack hidden">
+              <article class="result-block">
+                <div class="block-header">
+                  <h3>Answer</h3>
+                  <span id="provider-badge" class="provider-badge"></span>
+                </div>
+                <p id="answer-output"></p>
+              </article>
+
+              <article class="result-block">
+                <h3>Retrieved Sources</h3>
+                <div id="sources-output" class="sources-output"></div>
+              </article>
+            </div>
+          </form>
+        </div>
+
+        <div class="right-column">
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>3. Evaluate the RAG Pipeline</h2>
+                <p>Run the sample dataset to inspect retrieval metrics and judge scores.</p>
+              </div>
+            </div>
+
+            <div class="action-row action-row-wide">
+              <button id="evaluate-btn" type="button">Run Evaluation</button>
+              <p id="eval-status" class="status"></p>
+            </div>
+
+            <div id="eval-empty" class="empty-state">
+              Load the sample codebase or index your own files, then run evaluation to inspect
+              Precision@K, Recall@K, MRR, and LLM-as-judge scores.
+            </div>
+
+            <div id="eval-result" class="result-stack hidden">
+              <article class="result-block">
+                <h3>Aggregate Metrics</h3>
+                <div id="metrics-grid" class="metrics-grid"></div>
+              </article>
+
+              <article class="result-block">
+                <div class="block-header">
+                  <h3>Per-Example Results</h3>
+                  <span id="dataset-badge" class="provider-badge"></span>
+                </div>
+                <div id="examples-output" class="examples-output"></div>
+              </article>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <template id="file-template">
+      <article class="file-card">
+        <div class="file-card-header">
+          <strong>Code File</strong>
+          <button class="ghost-button remove-file-btn" type="button">Remove</button>
+        </div>
+        <label class="field">
+          <span>Path</span>
+          <input class="file-path-input" type="text" placeholder="app.py" />
+        </label>
+        <label class="field">
+          <span>Content</span>
+          <textarea class="file-content-input" rows="12" placeholder="Paste source code..."></textarea>
+        </label>
+      </article>
+    </template>
+
+    <script src="./config.js"></script>
+    <script src="./script.js"></script>
+  </body>
+</html>
