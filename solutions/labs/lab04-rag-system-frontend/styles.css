@@ -94,8 +94,7 @@ h1 {
 
 .workspace {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: 22px;
+  grid-template-columns: 1fr;
   margin-top: 22px;
 }
 
@@ -103,6 +102,10 @@ h1 {
 .right-column {
   display: grid;
   gap: 22px;
+}
+
+.evaluation-panel {
+  margin-top: 22px;
 }
 
 .panel {

@@ -104,41 +104,39 @@
             </div>
           </form>
         </div>
+      </section>
 
-        <div class="right-column">
-          <section class="panel">
-            <div class="panel-heading">
-              <div>
-                <h2>3. Evaluate the RAG Pipeline</h2>
-                <p>Run the sample dataset to inspect retrieval metrics and judge scores.</p>
-              </div>
+      <section class="panel evaluation-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>3. Evaluate the RAG Pipeline</h2>
+            <p>Run the sample dataset to inspect retrieval metrics and judge scores.</p>
+          </div>
+        </div>
+
+        <div class="action-row action-row-wide">
+          <button id="evaluate-btn" type="button">Run Evaluation</button>
+          <p id="eval-status" class="status"></p>
+        </div>
+
+        <div id="eval-empty" class="empty-state">
+          Load the sample codebase or index your own files, then run evaluation to inspect
+          Precision@K, Recall@K, MRR, and LLM-as-judge scores.
+        </div>
+
+        <div id="eval-result" class="result-stack hidden">
+          <article class="result-block">
+            <h3>Aggregate Metrics</h3>
+            <div id="metrics-grid" class="metrics-grid"></div>
+          </article>
+
+          <article class="result-block">
+            <div class="block-header">
+              <h3>Per-Example Results</h3>
+              <span id="dataset-badge" class="provider-badge"></span>
             </div>
-
-            <div class="action-row action-row-wide">
-              <button id="evaluate-btn" type="button">Run Evaluation</button>
-              <p id="eval-status" class="status"></p>
-            </div>
-
-            <div id="eval-empty" class="empty-state">
-              Load the sample codebase or index your own files, then run evaluation to inspect
-              Precision@K, Recall@K, MRR, and LLM-as-judge scores.
-            </div>
-
-            <div id="eval-result" class="result-stack hidden">
-              <article class="result-block">
-                <h3>Aggregate Metrics</h3>
-                <div id="metrics-grid" class="metrics-grid"></div>
-              </article>
-
-              <article class="result-block">
-                <div class="block-header">
-                  <h3>Per-Example Results</h3>
-                  <span id="dataset-badge" class="provider-badge"></span>
-                </div>
-                <div id="examples-output" class="examples-output"></div>
-              </article>
-            </div>
-          </section>
+            <div id="examples-output" class="examples-output"></div>
+          </article>
         </div>
       </section>
     </main>
