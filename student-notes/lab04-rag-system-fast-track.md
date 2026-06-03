@@ -4,6 +4,21 @@ This note is the shortest serious path through `04-rag-eval` plus the `lab04-rag
 
 Lab 04 is more important than it first looks. It is not just "make semantic search work." It is really about building a grounded AI system, proving that retrieval is helping, and showing evaluation evidence instead of intuition.
 
+## 5-Minute Recap
+
+If you only need the fast memory refresh, remember this:
+
+- `RAG = chunk -> embed -> retrieve -> answer`
+- Retrieval quality and answer quality are different problems
+- Chunking is the most important implementation decision
+- For code, chunk by functions, classes, and meaningful code units
+- Store metadata so you can show where answers came from
+- Lab 04 requires evaluation, not just a working chat flow
+- Required metrics are `Precision@K`, `Recall@K`, and `MRR`
+- You also need `LLM-as-judge` for generation quality
+- Your deliverable includes an evaluation dataset with `10+` examples
+- A good demo shows indexed files, retrieved chunks, answer, and metrics
+
 ## What Matters From Theory
 
 ### 1. RAG has two separate jobs
@@ -46,12 +61,54 @@ Lab 04 explicitly asks for:
 
 That means a working chat UI is not enough. You need a repeatable way to measure whether the system is retrieving the right code and answering well.
 
+#### What the required metrics actually mean
+
+- `Precision@K`: out of the top `K` retrieved chunks, how many were actually relevant
+- `Recall@K`: out of all relevant chunks for the question, how many did you successfully retrieve in the top `K`
+- `MRR`: how early the first relevant result appears in the ranking
+
+Quick intuition:
+
+- high `Precision@K` means your top results are clean and not noisy
+- high `Recall@K` means you are not missing important relevant chunks
+- high `MRR` means the first useful result appears near the top, which matters a lot for real user experience
+
+Example:
+
+- expected relevant chunks: `A`, `B`
+- retrieved top 3: `C`, `A`, `D`
+
+Then:
+
+- `Precision@3 = 1/3` because only `A` is relevant
+- `Recall@3 = 1/2` because you found one of the two relevant chunks
+- `MRR = 1/2` because the first relevant result appears at rank 2
+
+This matters because a system can look "kind of okay" while still having weak retrieval.
+
+- good answer with bad retrieval is often luck
+- bad answer with good retrieval usually points to prompt or generation issues
+
 ### 5. Separate retrieval quality from answer quality
 
 - If the wrong chunks are retrieved, generation is downstream damage.
 - If the right chunks are retrieved but the answer is still weak, your prompt or answer construction is the problem.
 
 Students often mix these together and then do not know what to fix.
+
+#### Retrieval quality vs generation quality
+
+Think about them as two separate tests:
+
+- retrieval test: "did we fetch the right code?"
+- generation test: "did we explain that code correctly and faithfully?"
+
+You need both because:
+
+- a relevant chunk can still produce a vague or wrong answer
+- a polished answer can still be unsupported by the retrieved code
+
+That is why the lab asks for both retrieval metrics and `LLM-as-judge`.
 
 ### 6. A RAG system should be inspectable
 
@@ -223,6 +280,19 @@ Minimum frontend behaviors:
 
 For this lab, do not overcomplicate chunking.
 
+### Why chunking matters so much
+
+Embeddings work on the chunk you give them. If the chunk is bad, retrieval quality usually drops before generation even begins.
+
+Common chunking mistakes:
+
+- chunks are too large, so one chunk mixes unrelated concerns
+- chunks are too small, so the answer gets split across several fragments
+- chunks ignore code structure, so a function body loses meaning
+- chunks have no metadata, so even good retrieval is hard to explain in the UI
+
+Good chunking for code means one chunk should usually represent one meaningful unit of behavior.
+
 ### Python
 
 - Prefer AST-based chunking by `class` and `def`
@@ -259,6 +329,17 @@ Reasonable defaults:
 - `k = 3` or `k = 5`
 - include scores if the vector store returns them
 - show sources in the UI
+
+### What `top K` means
+
+`K` is the number of chunks you retrieve before generating the answer.
+
+- low `K` can miss important context
+- high `K` can add noise and make the model less focused
+
+For this lab, `3` to `5` is usually a practical range for a small codebase demo.
+
+If quality is poor, test different `K` values before changing everything else.
 
 ## Prompt Checklist
 
@@ -299,6 +380,14 @@ For each test question:
   - Recall@K
   - MRR
 
+What this tells you:
+
+- `Precision@K` answers: "how noisy are my top results?"
+- `Recall@K` answers: "am I missing relevant material?"
+- `MRR` answers: "does the useful result show up early enough?"
+
+This is important because ranking matters. If the correct chunk is technically retrieved but always buried low, the user experience is still weak.
+
 ### Generation evaluation
 
 For each test question:
@@ -308,10 +397,39 @@ For each test question:
 - judge faithfulness to retrieved context
 - judge correctness against expected answer
 
+What these usually mean:
+
+- relevance: did the answer address the question asked
+- faithfulness: did the answer stay grounded in retrieved context
+- correctness: did the answer match the expected answer closely enough
+
+For RAG, faithfulness is especially important. A fluent answer is not a good answer if it invents details not found in the code.
+
 If you are rushed, the most important thing is to implement:
 
 - real retrieval metrics
 - one LLM-as-judge pass with a visible score and explanation
+
+### What `LLM-as-judge` is doing
+
+This means you use a second evaluation prompt to score the generated answer instead of only eyeballing it yourself.
+
+Typical judge questions:
+
+- Is the answer relevant to the question?
+- Is the answer faithful to the retrieved context?
+- Is the answer correct compared to the expected answer?
+
+This is useful because:
+
+- it gives repeatable scoring
+- it scales better than manual checking
+- it helps compare prompt or retrieval changes over time
+
+But remember:
+
+- the judge is still another model, not absolute truth
+- use it as structured evaluation, not as a magical guarantee
 
 ## How To Build the Evaluation Dataset
 
@@ -336,6 +454,25 @@ Weak evaluation questions are:
 - too broad
 - opinion-based
 - answerable from many unrelated chunks
+
+### What makes a strong evaluation example
+
+A strong example usually has:
+
+- one clear question
+- one expected answer or very narrow answer space
+- one or a few known relevant chunk IDs
+- enough specificity that you can tell whether retrieval succeeded
+
+Weak example:
+
+- "How does this app work?"
+
+Strong example:
+
+- "Which function validates JWT tokens, and what file is it in?"
+
+The stronger your examples are, the more meaningful your metrics become.
 
 ## Deliverables Checklist
 
@@ -376,6 +513,16 @@ Your demo should show:
 - claiming grounding while the prompt allows unsupported guesses
 - building only the query flow and skipping `/evaluate`
 - showing aggregate metrics only, with no per-example visibility
+
+## Do Not Forget These 7 Things
+
+1. Do not embed entire files as single chunks unless the files are tiny.
+2. Do not build query answering without stable chunk IDs and metadata.
+3. Do not judge the answer only by vibes; compute retrieval metrics too.
+4. Do not skip the evaluation dataset; it is part of the actual lab output.
+5. Do not let the model answer beyond retrieved context without saying so.
+6. Do not hide the retrieved snippets in the UI; they help with trust and debugging.
+7. Do not submit without proving the three flows: indexing, querying, and evaluation.
 
 ## Debugging Order
 
