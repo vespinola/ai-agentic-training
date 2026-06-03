@@ -295,29 +295,57 @@ function renderJudgeScores(scores) {
   return scores
     .map(
       (score) => `
-        <li><strong>${score.dimension}</strong>: ${score.rating}/5 · ${score.explanation}</li>
+        <li><strong>${score.dimension}</strong>: ${score.rating}/5<br /><span>${score.explanation}</span></li>
       `
     )
     .join("");
 }
 
+function getJudgeScore(scores, dimension) {
+  return scores.find((score) => score.dimension === dimension)?.rating ?? "-";
+}
+
+function summarizeText(text, maxLength = 120) {
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return `${text.slice(0, maxLength).trim()}...`;
+}
+
 function renderExampleResults(examples) {
   examplesOutput.innerHTML = "";
   examples.forEach((example) => {
-    const article = document.createElement("article");
+    const article = document.createElement("details");
     article.className = "example-card";
+
+    const relevance = getJudgeScore(example.judge_scores, "relevance");
+    const faithfulness = getJudgeScore(example.judge_scores, "faithfulness");
+    const correctness = getJudgeScore(example.judge_scores, "correctness");
+
     article.innerHTML = `
-      <h4>${example.id} · ${example.question}</h4>
-      <p><strong>Expected:</strong> ${example.expected_answer}</p>
-      <p><strong>Generated:</strong> ${example.generated_answer}</p>
-      <p><strong>Retrieved IDs:</strong> ${example.retrieved_doc_ids.join(", ") || "None"}</p>
-      <p><strong>Relevant IDs:</strong> ${example.relevant_doc_ids.join(", ")}</p>
-      <div class="mini-metrics">
-        <span>Precision@K ${example.metrics.precision_at_k}</span>
-        <span>Recall@K ${example.metrics.recall_at_k}</span>
-        <span>MRR ${example.metrics.mrr}</span>
+      <summary class="example-summary">
+        <div class="example-summary-main">
+          <h4>${example.id} · ${example.question}</h4>
+          <p>${summarizeText(example.generated_answer, 110)}</p>
+        </div>
+        <div class="example-summary-metrics">
+          <span>R ${relevance}/5</span>
+          <span>F ${faithfulness}/5</span>
+          <span>C ${correctness}/5</span>
+        </div>
+      </summary>
+      <div class="example-details">
+        <p><strong>Expected:</strong> ${example.expected_answer}</p>
+        <p><strong>Generated:</strong> ${example.generated_answer}</p>
+        <p><strong>Retrieved IDs:</strong> ${example.retrieved_doc_ids.join(", ") || "None"}</p>
+        <p><strong>Relevant IDs:</strong> ${example.relevant_doc_ids.join(", ")}</p>
+        <div class="mini-metrics">
+          <span>Precision@K ${example.metrics.precision_at_k}</span>
+          <span>Recall@K ${example.metrics.recall_at_k}</span>
+          <span>MRR ${example.metrics.mrr}</span>
+        </div>
+        <ul class="judge-list">${renderJudgeScores(example.judge_scores)}</ul>
       </div>
-      <ul class="judge-list">${renderJudgeScores(example.judge_scores)}</ul>
     `;
     examplesOutput.appendChild(article);
   });

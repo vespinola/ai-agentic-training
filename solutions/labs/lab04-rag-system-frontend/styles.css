@@ -394,6 +394,66 @@ code {
   padding-left: 20px;
 }
 
+.judge-list li span {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.example-card {
+  overflow: hidden;
+}
+
+.example-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: start;
+  cursor: pointer;
+  list-style: none;
+}
+
+.example-summary::-webkit-details-marker {
+  display: none;
+}
+
+.example-summary h4 {
+  margin-bottom: 8px;
+}
+
+.example-summary p {
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.example-summary-main {
+  min-width: 0;
+}
+
+.example-summary-metrics {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: end;
+}
+
+.example-summary-metrics span {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(14, 122, 109, 0.08);
+  color: var(--accent-strong);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.example-details {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
 .hidden,
 .hidden-file-input {
   display: none;
