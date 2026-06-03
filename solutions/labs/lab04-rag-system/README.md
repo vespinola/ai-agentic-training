@@ -463,3 +463,13 @@ This solution covers the lab04 deliverables with:
 - bundled evaluation dataset with `10` examples
 - web frontend for indexing, querying, and metrics
 - deployment-ready backend and frontend folders
+
+## Demo Recording
+
+A preview that plays directly in the README:
+
+![Lab 04 Demo Preview](./demo/lab04-demo.gif)
+
+Full-quality recording:
+
+- [demo/lab04-demo.mov](./demo/lab04-demo.mov)

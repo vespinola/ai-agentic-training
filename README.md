@@ -9,6 +9,7 @@ This repository now contains my course work, working solutions, and companion no
 - [student-notes/module-1-fast-track.md](./student-notes/module-1-fast-track.md)
 - [student-notes/lab02-code-analyzer-fast-track.md](./student-notes/lab02-code-analyzer-fast-track.md)
 - [student-notes/lab03-migration-workflow-fast-track.md](./student-notes/lab03-migration-workflow-fast-track.md)
+- [student-notes/lab04-rag-system-fast-track.md](./student-notes/lab04-rag-system-fast-track.md)
 
 ### Module 1 Exercise
 
@@ -54,6 +55,20 @@ What is included:
 - Vercel-ready frontend scaffold
 - four-phase migration workflow
 - mock migration plus Groq/OpenAI/Gemini provider support
+- student fast-track notes
+- demo recording
+
+### Lab 04: RAG System With Evaluation
+
+- [solutions/labs/lab04-rag-system](./solutions/labs/lab04-rag-system)
+- [solutions/labs/lab04-rag-system-frontend](./solutions/labs/lab04-rag-system-frontend)
+
+What is included:
+- Render-ready FastAPI backend scaffold
+- Vercel-ready frontend scaffold
+- code-aware chunking and grounded query flow
+- retrieval metrics plus LLM-as-judge style evaluation
+- bundled evaluation dataset and dataset guide
 - student fast-track notes
 - demo recording
 
@@ -147,6 +162,39 @@ Lab 03 demo assets:
 - [solutions/labs/lab03-migration-workflow/demo/lab03-demo.gif](./solutions/labs/lab03-migration-workflow/demo/lab03-demo.gif)
 - [solutions/labs/lab03-migration-workflow/demo/lab03-demo.mov](./solutions/labs/lab03-migration-workflow/demo/lab03-demo.mov)
 
+## Lab 04 Quick Start
+
+Backend:
+
+```bash
+cd solutions/labs/lab04-rag-system
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+Frontend:
+
+```bash
+cd solutions/labs/lab04-rag-system-frontend
+python3 -m http.server 4173
+```
+
+Then open:
+
+```text
+http://127.0.0.1:4173
+```
+
+Lab 04 notes and setup:
+- [student-notes/lab04-rag-system-fast-track.md](./student-notes/lab04-rag-system-fast-track.md)
+- [solutions/labs/lab04-rag-system/README.md](./solutions/labs/lab04-rag-system/README.md)
+
+Lab 04 demo assets:
+- [solutions/labs/lab04-rag-system/demo/lab04-demo.gif](./solutions/labs/lab04-rag-system/demo/lab04-demo.gif)
+- [solutions/labs/lab04-rag-system/demo/lab04-demo.mov](./solutions/labs/lab04-rag-system/demo/lab04-demo.mov)
+
 ## Repository Structure
 
 ```text
@@ -164,3 +212,4 @@ Lab 03 demo assets:
 - Lab 01 URL shortener: done
 - Lab 02 code analyzer scaffold: done
 - Lab 03 migration workflow agent: done
+- Lab 04 RAG system with evaluation: done
