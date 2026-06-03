@@ -9,6 +9,7 @@ These notes are meant to sit alongside the official content in `theory/`, `guide
 - [module-1-fast-track.md](./module-1-fast-track.md)
 - [lab02-code-analyzer-fast-track.md](./lab02-code-analyzer-fast-track.md)
 - [lab03-migration-workflow-fast-track.md](./lab03-migration-workflow-fast-track.md)
+- [lab04-rag-system-fast-track.md](./lab04-rag-system-fast-track.md)
 
 ## How To Use
 
