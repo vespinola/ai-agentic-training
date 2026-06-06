@@ -1,5 +1,80 @@
 #!/usr/bin/env python3
-"""Render-ready backend for the Lab 05 multi-agent orchestration lab."""
+"""Render-ready backend for the Lab 05 multi-agent orchestration lab.
+
+This file implements the backend for the Lab 05 exercise from Module 5, where
+the goal is to build a small but complete multi-agent system using the
+supervisor pattern.
+
+What the app does:
+- accepts a user task through `POST /run`
+- creates a request-scoped workflow state object
+- routes the task through a team of specialized workers
+- records an activity trace of every delegation and result
+- returns both the final answer and the intermediate artifacts
+
+The worker team in this implementation:
+- `Researcher`: gathers and structures the core points for the task
+- `Writer`: turns research into a polished user-facing answer
+- `Reviewer`: checks quality, clarity, and completeness, then either approves
+  the draft or asks for a focused revision
+
+How this maps to the Module 5 theory:
+
+1. Supervisor Pattern
+   The supervisor does not try to do all the work itself. Instead, it reads the
+   current workflow state and decides which specialist should act next. This is
+   the core orchestration idea of the lab.
+
+2. Worker Specialization
+   Each worker has a narrow responsibility. The point is not to create many
+   agents for show, but to make handoffs clearer and outputs more reliable than
+   one monolithic prompt would be.
+
+3. Structured Handoffs
+   Workers return explicit JSON shapes such as research summaries, drafts, and
+   review feedback. This mirrors the theory idea that multi-agent systems work
+   better when communication contracts are predictable.
+
+4. Shared State
+   The `WorkflowState` model is the short-term memory of the orchestration. It
+   stores the task, iteration count, worker outputs, final answer, trace, and
+   errors so the supervisor can make informed next-step decisions.
+
+5. Iteration Limits
+   The workflow always respects `max_iterations`. This is an important
+   production concern from Module 5: the system must have a stopping rule so it
+   does not loop forever or spend tokens on low-value refinements.
+
+6. Review Loop
+   The reviewer acts as a lightweight quality gate. If the draft is not good
+   enough, the supervisor turns the review feedback into a focused revision pass
+   for the writer. That demonstrates how orchestration can improve quality
+   without making the architecture overly complex.
+
+7. Observability
+   The API intentionally returns `activity_log`, worker outputs, and final
+   output together. In the theory, inspectability is part of a production-ready
+   AI system because it helps with demos, debugging, and trust.
+
+8. Provider Abstraction
+   The orchestration logic is separated from the model provider. This file
+   supports:
+   - `mock` mode for local development and tests
+   - `groq` mode for real model-backed worker execution
+
+What this file is meant to teach:
+- how to coordinate multiple agents without overengineering
+- how to keep orchestration logic explicit and easy to inspect
+- how to connect theory concepts like supervisor routing, state, limits, and
+  traceability to working code
+
+If you come back to this file later, read it in this order:
+1. `RunRequest`, `WorkflowState`, and `RunResponse`
+2. prompt builders for each worker
+3. `AgentBackend` plus `MockAgentBackend` and `GroqAgentBackend`
+4. `MultiAgentService.run()` which contains the actual supervisor loop
+5. FastAPI routes at the bottom
+"""
 
 from __future__ import annotations
 
@@ -58,6 +133,9 @@ class TraceEntry(BaseModel):
 
 
 class WorkflowState(BaseModel):
+    # Module 05 theory: orchestration only feels reliable when the supervisor
+    # has explicit shared state instead of reconstructing context from scratch
+    # on every worker call.
     task: str
     max_iterations: int
     iteration_count: int = 0
@@ -71,6 +149,8 @@ class WorkflowState(BaseModel):
 
 
 class RunResponse(BaseModel):
+    # The response intentionally exposes intermediate artifacts so the system is
+    # inspectable. In Module 05, observability is part of the product.
     success: bool
     status: str
     provider: str
@@ -129,6 +209,8 @@ def extract_json_object(text: str) -> dict[str, object]:
 
 
 def build_supervisor_digest(state: WorkflowState) -> str:
+    # The supervisor does not perform specialist work itself. It keeps a compact
+    # digest of what has happened so far, then uses that to route the next step.
     parts = [f"Task: {state.task}", f"Iteration: {state.iteration_count}/{state.max_iterations}"]
     if state.research_result:
         parts.append(f"Research summary: {state.research_result.summary}")
@@ -155,6 +237,9 @@ def build_research_prompt(task: str) -> str:
 
 
 def build_writer_prompt(task: str, research: ResearchResult, review: ReviewResult | None) -> str:
+    # Module 05 theory: workers should receive only the context they need for
+    # their role. The writer gets research plus focused review feedback, not the
+    # entire raw workflow history.
     review_context = ""
     if review and review.issues:
         review_context = (
@@ -204,6 +289,9 @@ def build_reviewer_prompt(task: str, research: ResearchResult, writer: WriterRes
 class AgentBackend(ABC):
     name: str
 
+    # The backend interface keeps worker roles stable even if the provider
+    # changes. That mirrors the production idea of separating orchestration from
+    # model vendor details.
     @abstractmethod
     def research(self, task: str) -> ResearchResult:
         raise NotImplementedError
@@ -226,6 +314,8 @@ class MockAgentBackend(AgentBackend):
     name = "mock"
 
     def research(self, task: str) -> ResearchResult:
+        # This mock path preserves the orchestration architecture for local
+        # development, even when no external model is available.
         compact_task = task.strip().rstrip(".")
         key_points = [
             "Break the task into understandable sections so each worker adds a clear value.",
@@ -321,6 +411,8 @@ class GroqAgentBackend(AgentBackend):
         self.client = OpenAI(api_key=api_key, base_url=self.base_url)
 
     def _complete_json(self, prompt: str) -> dict[str, object]:
+        # Structured JSON output is doing real architectural work here: it makes
+        # worker handoffs predictable and reduces fragile text parsing.
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -386,6 +478,8 @@ class MultiAgentService:
         detail: str,
         payload: dict[str, object] | None = None,
     ) -> None:
+        # Module 05 theory: if you cannot inspect agent decisions, debugging and
+        # demos become much harder. The trace gives us an explicit audit trail.
         state.activity_log.append(
             TraceEntry(
                 step=len(state.activity_log) + 1,
@@ -397,6 +491,8 @@ class MultiAgentService:
         )
 
     def _finalize(self, state: WorkflowState) -> None:
+        # Production mindset: even if the workflow stops early, return the best
+        # available artifact instead of failing silently and losing progress.
         if state.writer_result:
             review_note = ""
             if state.review_result and not state.review_result.approved:
@@ -426,6 +522,11 @@ class MultiAgentService:
             payload={"task": state.task, "max_iterations": state.max_iterations},
         )
 
+        # This loop is the heart of the supervisor pattern:
+        # - inspect current state
+        # - choose the next worker
+        # - update shared state
+        # - stop when approved or out of iterations
         while state.iteration_count < state.max_iterations:
             if state.research_result is None:
                 self._log(
@@ -435,6 +536,8 @@ class MultiAgentService:
                     detail="Delegating to Researcher to gather context and key points.",
                     payload={"worker": "researcher", "digest": build_supervisor_digest(state)},
                 )
+                # Supervisor delegates to a specialist instead of trying to do
+                # the research itself. That is the key orchestration idea.
                 state.iteration_count += 1
                 state.research_result = self.backend.research(state.task)
                 self._log(
@@ -454,6 +557,8 @@ class MultiAgentService:
                     detail="Delegating to Writer to turn the research into a polished draft.",
                     payload={"worker": "writer", "digest": build_supervisor_digest(state)},
                 )
+                # The writer consumes structured research output, which is a
+                # cleaner handoff than passing one huge free-form transcript.
                 state.iteration_count += 1
                 state.writer_result = self.backend.write(state.task, state.research_result, state.review_result)
                 self._log(
@@ -473,6 +578,8 @@ class MultiAgentService:
                     detail="Delegating to Reviewer for quality control and revision guidance.",
                     payload={"worker": "reviewer", "digest": build_supervisor_digest(state)},
                 )
+                # Reviewer acts as the quality gate. This is one of the main
+                # reasons multi-agent can outperform a single monolithic prompt.
                 state.iteration_count += 1
                 state.review_result = self.backend.review(
                     state.task,
@@ -502,6 +609,8 @@ class MultiAgentService:
                     detail="Reviewer requested changes. Sending the revision brief back to Writer.",
                     payload={"revision_brief": state.review_result.revision_brief},
                 )
+                # Instead of looping blindly, the supervisor converts review
+                # feedback into a focused revision pass for the writer.
                 state.writer_result = None
                 state.review_result = None
                 continue
@@ -591,6 +700,8 @@ def health() -> dict[str, object]:
 @app.post("/api/run", response_model=RunResponse)
 def run_workflow(payload: RunRequest) -> RunResponse:
     try:
+        # The HTTP layer stays thin. Most of the theory-relevant behavior lives
+        # inside the orchestration service rather than inside route handlers.
         return multi_agent_service.run(payload)
     except (RuntimeError, ValueError) as exc:
         LOGGER.exception("Workflow failed")
