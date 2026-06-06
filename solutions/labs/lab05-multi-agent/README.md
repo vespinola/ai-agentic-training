@@ -121,3 +121,8 @@ python3 -m unittest test_main.py
 ```
 
 The tests use the default `mock` provider so they do not require API keys.
+
+## Demo Assets
+
+- [demo/lab05-demo.gif](./demo/lab05-demo.gif)
+- [demo/lab05-demo.mov](./demo/lab05-demo.mov)

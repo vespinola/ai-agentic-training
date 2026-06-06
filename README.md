@@ -86,6 +86,7 @@ What is included:
 - shared workflow state and visible activity trace
 - Groq-ready env setup plus mock mode for local testing
 - student fast-track notes
+- demo recording
 
 ## Lab 01 Quick Start
 
@@ -239,6 +240,10 @@ Lab 05 notes and setup:
 - [student-notes/lab05-multi-agent-fast-track.md](./student-notes/lab05-multi-agent-fast-track.md)
 - [solutions/labs/lab05-multi-agent/README.md](./solutions/labs/lab05-multi-agent/README.md)
 
+Lab 05 demo assets:
+- [solutions/labs/lab05-multi-agent/demo/lab05-demo.gif](./solutions/labs/lab05-multi-agent/demo/lab05-demo.gif)
+- [solutions/labs/lab05-multi-agent/demo/lab05-demo.mov](./solutions/labs/lab05-multi-agent/demo/lab05-demo.mov)
+
 ## Repository Structure
 
 ```text
@@ -257,3 +262,4 @@ Lab 05 notes and setup:
 - Lab 02 code analyzer scaffold: done
 - Lab 03 migration workflow agent: done
 - Lab 04 RAG system with evaluation: done
+- Lab 05 multi-agent orchestration: done
