@@ -10,6 +10,7 @@ This repository now contains my course work, working solutions, and companion no
 - [student-notes/lab02-code-analyzer-fast-track.md](./student-notes/lab02-code-analyzer-fast-track.md)
 - [student-notes/lab03-migration-workflow-fast-track.md](./student-notes/lab03-migration-workflow-fast-track.md)
 - [student-notes/lab04-rag-system-fast-track.md](./student-notes/lab04-rag-system-fast-track.md)
+- [student-notes/lab05-multi-agent-fast-track.md](./student-notes/lab05-multi-agent-fast-track.md)
 
 ### Module 1 Exercise
 

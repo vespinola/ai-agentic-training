@@ -10,6 +10,7 @@ These notes are meant to sit alongside the official content in `theory/`, `guide
 - [lab02-code-analyzer-fast-track.md](./lab02-code-analyzer-fast-track.md)
 - [lab03-migration-workflow-fast-track.md](./lab03-migration-workflow-fast-track.md)
 - [lab04-rag-system-fast-track.md](./lab04-rag-system-fast-track.md)
+- [lab05-multi-agent-fast-track.md](./lab05-multi-agent-fast-track.md)
 
 ## How To Use
 
