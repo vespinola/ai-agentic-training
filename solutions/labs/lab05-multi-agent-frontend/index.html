@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lab 05 Multi-Agent Orchestration</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="hero-card">
+        <p class="eyebrow">Module 5 · Production & Orchestration</p>
+        <h1>Multi-Agent Research Studio</h1>
+        <p class="hero-copy">
+          Run a supervisor-led workflow where a Researcher gathers context, a Writer drafts the
+          response, and a Reviewer pushes for a stronger final answer before the system completes.
+        </p>
+      </section>
+
+      <section class="workspace">
+        <div class="left-column">
+          <form id="run-form" class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>1. Give The Team A Task</h2>
+                <p>Describe a research or explanation task and choose how many worker turns to allow.</p>
+              </div>
+              <button id="load-sample-btn" class="secondary-button" type="button">Load Sample</button>
+            </div>
+
+            <label class="field">
+              <span>Task</span>
+              <textarea
+                id="task-input"
+                rows="10"
+                placeholder="Example: Explain how vector databases work for a junior backend developer and include practical tradeoffs."
+              ></textarea>
+            </label>
+
+            <div class="inline-grid">
+              <label class="field field-wide">
+                <span>Max Iterations</span>
+                <select id="iterations-input">
+                  <option value="4">4 turns · quicker run</option>
+                  <option value="5" selected>5 turns · balanced default</option>
+                  <option value="6">6 turns · more revision room</option>
+                  <option value="7">7 turns · deeper polishing</option>
+                </select>
+                <small class="field-help">
+                  Each worker action counts toward this limit, so higher values allow review loops.
+                </small>
+              </label>
+
+              <article class="tip-card">
+                <h3>Suggested Worker Team</h3>
+                <ul>
+                  <li><strong>Researcher</strong>: gathers key points</li>
+                  <li><strong>Writer</strong>: turns them into a polished answer</li>
+                  <li><strong>Reviewer</strong>: checks quality and requests fixes</li>
+                </ul>
+              </article>
+            </div>
+
+            <div class="action-row">
+              <button id="run-btn" type="submit">Run Orchestration</button>
+              <p id="run-status" class="status"></p>
+            </div>
+          </form>
+        </div>
+
+        <div class="right-column">
+          <section class="panel panel-tight">
+            <div class="block-header">
+              <h2>2. Workflow State</h2>
+              <span id="provider-badge" class="provider-badge">Provider pending</span>
+            </div>
+            <div id="workflow-empty" class="empty-state">
+              Run a task to see the supervisor decisions, worker outputs, and final result.
+            </div>
+            <div id="workflow-summary" class="summary-grid hidden"></div>
+          </section>
+
+          <section class="panel panel-tight">
+            <h2>3. Agent Activity Trace</h2>
+            <div id="activity-output" class="activity-output"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="panel result-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>4. Final Deliverable</h2>
+            <p>The final answer plus the structured outputs from Researcher, Writer, and Reviewer.</p>
+          </div>
+        </div>
+
+        <div id="result-empty" class="empty-state">
+          The final answer, research notes, draft, and review feedback will appear here after a run.
+        </div>
+
+        <div id="result-content" class="result-stack hidden">
+          <article class="result-block">
+            <h3>Final Output</h3>
+            <pre id="final-output" class="markdown-output"></pre>
+          </article>
+
+          <div class="results-grid">
+            <article class="result-block">
+              <h3>Researcher Output</h3>
+              <div id="research-output"></div>
+            </article>
+
+            <article class="result-block">
+              <h3>Writer Output</h3>
+              <div id="writer-output"></div>
+            </article>
+          </div>
+
+          <article class="result-block">
+            <h3>Reviewer Output</h3>
+            <div id="review-output"></div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script src="./config.js"></script>
+    <script src="./script.js"></script>
+  </body>
+</html>

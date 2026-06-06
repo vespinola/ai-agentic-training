@@ -74,6 +74,19 @@ What is included:
 - student fast-track notes
 - demo recording
 
+### Lab 05: Multi-Agent Orchestration
+
+- [solutions/labs/lab05-multi-agent](./solutions/labs/lab05-multi-agent)
+- [solutions/labs/lab05-multi-agent-frontend](./solutions/labs/lab05-multi-agent-frontend)
+
+What is included:
+- Render-ready FastAPI backend scaffold
+- Vercel-ready frontend scaffold
+- supervisor plus `Researcher`, `Writer`, and `Reviewer` workers
+- shared workflow state and visible activity trace
+- Groq-ready env setup plus mock mode for local testing
+- student fast-track notes
+
 ## Lab 01 Quick Start
 
 ```bash
@@ -196,6 +209,35 @@ Lab 04 notes and setup:
 Lab 04 demo assets:
 - [solutions/labs/lab04-rag-system/demo/lab04-demo.gif](./solutions/labs/lab04-rag-system/demo/lab04-demo.gif)
 - [solutions/labs/lab04-rag-system/demo/lab04-demo.mov](./solutions/labs/lab04-rag-system/demo/lab04-demo.mov)
+
+## Lab 05 Quick Start
+
+Backend:
+
+```bash
+cd solutions/labs/lab05-multi-agent
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+Frontend:
+
+```bash
+cd solutions/labs/lab05-multi-agent-frontend
+python3 -m http.server 4173
+```
+
+Then open:
+
+```text
+http://127.0.0.1:4173
+```
+
+Lab 05 notes and setup:
+- [student-notes/lab05-multi-agent-fast-track.md](./student-notes/lab05-multi-agent-fast-track.md)
+- [solutions/labs/lab05-multi-agent/README.md](./solutions/labs/lab05-multi-agent/README.md)
 
 ## Repository Structure
 
