@@ -1,14 +1,51 @@
 #!/usr/bin/env python3
 """Final project backend for Option A: AI Code Review Bot.
 
-This implementation intentionally combines ideas from Labs 02, 04, and 05:
+Why this file exists:
+    The final project needed to satisfy the "AI Code Review Bot" brief while
+    also showing a clear evolution from the earlier course labs. Instead of
+    building a thin wrapper around a single prompt, this backend deliberately
+    demonstrates several theory ideas from the course in one place.
 
-- Lab 02: prompt-driven code review with structured JSON output
-- Lab 04: retrieval of grounded review guidance plus a lightweight evaluation set
-- Lab 05: explicit workflow phases, activity trace, and worker-style orchestration
+What this implementation tries to teach:
+    1. Lab 02 / Prompt Engineering
+       The review output is prompt-driven and schema-shaped. The prompts are
+       designed to ask for structured findings instead of a free-form essay.
 
-The result is a portfolio-grade review service that still fits the final project
-brief while clearly showing the progression across the course.
+    2. Lab 03 / Agent Workflows
+       Even though this is not a huge multi-phase migration tool, it still uses
+       an explicit workflow:
+           intake -> retrieval -> review draft -> validation -> final response
+       This keeps the system easier to reason about than one opaque model call.
+
+    3. Lab 04 / Retrieval + Evaluation
+       The reviewer can pull lightweight guidance from a local knowledge base,
+       and the project ships with a bundled evaluation dataset so quality can be
+       measured repeatedly instead of judged only by vibes.
+
+    4. Lab 05 / Orchestration + Observability
+       The service records a trace of what happened. That makes demos, debugging,
+       and team reviews much easier because the system is inspectable.
+
+Production ideas applied:
+    - provider abstraction (`mock`, `openai`, `groq`)
+    - request validation with Pydantic
+    - normalization / repair of imperfect model output
+    - rate limiting
+    - health endpoint
+    - response warnings instead of hard-failing on every imperfect model answer
+
+How to read this file:
+    1. Start with the data models (`ReviewRequest`, `Issue`, `ReviewResponse`)
+    2. Read the helper functions for parsing, normalization, and prompt building
+    3. Read `KnowledgeBase` to see the retrieval step
+    4. Read `MockReviewBackend` and `LLMReviewBackend`
+    5. Read `ReviewOrchestrator.run()` last because that is the full workflow
+
+Friendly summary:
+    Think of this backend as a small review pipeline, not just "call model and
+    hope." That makes it easier to explain to teammates and easier to extend
+    later when you want stronger retrieval, better evaluation, or more workers.
 """
 
 from __future__ import annotations
@@ -32,6 +69,12 @@ from openai import APIStatusError as OpenAIAPIStatusError
 from pydantic import BaseModel, Field
 
 
+# ---------------------------------------------------------------------------
+# Core enums / literals
+# ---------------------------------------------------------------------------
+# These literals keep the API contract stable. In Module 3 theory, this maps to
+# "structured output contracts": the model can be flexible internally, but the
+# service boundary should stay predictable.
 ReviewMode = Literal["general", "security", "performance", "deep"]
 Severity = Literal["critical", "high", "medium", "low"]
 IssueCategory = Literal["bug", "security", "performance", "style", "maintainability"]
@@ -70,6 +113,14 @@ logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
 
 
 class Issue(BaseModel):
+    """One concrete review finding returned to the caller.
+
+    Theory connection:
+        This is the smallest reliable unit of review output. We keep it narrow
+        on purpose so the frontend can render it consistently and the evaluator
+        can compare issue categories across runs.
+    """
+
     severity: Severity
     line: int | None = None
     category: IssueCategory
@@ -78,6 +129,12 @@ class Issue(BaseModel):
 
 
 class ReviewMetrics(BaseModel):
+    """Lightweight summary metrics for demo and product UX.
+
+    These are not meant to be a rigorous static-analysis score. They are a
+    compact "executive summary" layer over the more detailed findings.
+    """
+
     overall_score: int = Field(ge=1, le=10)
     complexity: Literal["low", "medium", "high"]
     maintainability: Literal["poor", "fair", "good", "strong"]
@@ -85,6 +142,13 @@ class ReviewMetrics(BaseModel):
 
 
 class ReviewRequest(BaseModel):
+    """User input for one review run.
+
+    The final project brief only required code + language, but we include
+    `review_mode` and `focus` to show how prompting can be steered by explicit
+    parameters instead of brittle prompt edits.
+    """
+
     code: str = Field(min_length=1, description="Source code to review")
     language: str = Field(min_length=1, description="Programming language name")
     review_mode: ReviewMode = "general"
@@ -93,6 +157,13 @@ class ReviewRequest(BaseModel):
 
 
 class KnowledgeDocument(BaseModel):
+    """A stored review guideline used by the retrieval step.
+
+    This is the local, lightweight version of a RAG knowledge source. The goal
+    is not to build a huge vector database here, but to show the grounded-review
+    idea from Lab 04 with a small, explainable corpus.
+    """
+
     id: str
     title: str
     category: str
@@ -103,6 +174,8 @@ class KnowledgeDocument(BaseModel):
 
 
 class KnowledgeHit(BaseModel):
+    """A retrieved guideline that will be injected into the review context."""
+
     id: str
     title: str
     category: str
@@ -111,6 +184,13 @@ class KnowledgeHit(BaseModel):
 
 
 class TraceEntry(BaseModel):
+    """One observability event in the workflow trace.
+
+    Theory connection:
+        Lab 05 emphasized that agentic systems should be inspectable. Instead of
+        hiding the whole pipeline behind one answer, we return the steps.
+    """
+
     step: int
     actor: str
     event: str
@@ -119,6 +199,8 @@ class TraceEntry(BaseModel):
 
 
 class ReviewDraft(BaseModel):
+    """Intermediate or final structured review produced by a backend."""
+
     summary: str
     issues: list[Issue]
     suggestions: list[str]
@@ -127,6 +209,19 @@ class ReviewDraft(BaseModel):
 
 
 class ReviewResponse(BaseModel):
+    """Public API response for `/review`.
+
+    The response intentionally exposes:
+    - the final structured findings
+    - which worker-style stages were used
+    - retrieved guidance
+    - warnings / repairs applied to model output
+    - a step trace
+
+    This is a very demo-friendly response shape because it lets the team see
+    not only *what* the answer was, but also *how* the system got there.
+    """
+
     success: bool
     status: str
     request_id: str
@@ -145,6 +240,8 @@ class ReviewResponse(BaseModel):
 
 
 class ReviewEvalExample(BaseModel):
+    """One expected-outcome example in the bundled evaluation suite."""
+
     id: str
     language: str
     review_mode: ReviewMode
@@ -154,10 +251,18 @@ class ReviewEvalExample(BaseModel):
 
 
 class EvaluateRequest(BaseModel):
+    """Optional custom evaluation payload.
+
+    If no examples are provided, the app falls back to the bundled dataset on
+    disk. This keeps the endpoint useful both for demos and for later extension.
+    """
+
     examples: list[ReviewEvalExample] = Field(default_factory=list)
 
 
 class EvalExampleResult(BaseModel):
+    """Per-example evaluation result returned by `/evaluate`."""
+
     id: str
     review_mode: ReviewMode
     language: str
@@ -171,12 +276,16 @@ class EvalExampleResult(BaseModel):
 
 
 class EvaluationSummary(BaseModel):
+    """Aggregate metrics across all evaluation examples."""
+
     example_count: int
     avg_category_recall: float
     issue_count_pass_rate: float
 
 
 class EvaluateResponse(BaseModel):
+    """Top-level response for the evaluation endpoint."""
+
     provider: str
     dataset_name: str
     summary: EvaluationSummary
@@ -184,6 +293,14 @@ class EvaluateResponse(BaseModel):
 
 
 class WorkflowState(BaseModel):
+    """Short-lived orchestration memory for a single request.
+
+    Theory connection:
+        This is the small-scale equivalent of agent state from Lab 03/05.
+        Instead of recomputing everything from scratch, the orchestrator keeps
+        explicit state about the request, retrieved context, drafts, and trace.
+    """
+
     request_id: str
     language: str
     review_mode: ReviewMode
@@ -198,6 +315,14 @@ class WorkflowState(BaseModel):
 
 
 class ReviewBackend(ABC):
+    """Backend contract for review generation.
+
+    Why an abstraction exists:
+        The orchestration code should not care whether findings come from
+        heuristics (`mock`) or a real hosted model (`openai` / `groq`).
+        This keeps the architecture easier to test and explain.
+    """
+
     @abstractmethod
     def review(
         self,
@@ -219,6 +344,13 @@ class ReviewBackend(ABC):
 
 
 def load_local_env_file() -> None:
+    """Load a simple local `.env` file without overriding real environment vars.
+
+    This mirrors the deployment pattern used throughout the labs:
+    - local development can rely on a checked-out `.env`
+    - production can inject environment variables from the platform
+    """
+
     env_path = BASE_DIR / ".env"
     if not env_path.exists():
         return
@@ -239,6 +371,8 @@ load_local_env_file()
 
 
 def parse_cors_origins() -> list[str]:
+    """Parse the configured CORS allow-list."""
+
     raw = os.getenv("CORS_ALLOW_ORIGINS", "*")
     if raw.strip() == "*":
         return ["*"]
@@ -246,10 +380,14 @@ def parse_cors_origins() -> list[str]:
 
 
 def normalize_provider_name(value: str) -> str:
+    """Normalize provider names so env values are forgiving."""
+
     return value.strip().lower()
 
 
 def line_of_match(code: str, pattern: str) -> int | None:
+    """Best-effort helper to attach a line number to heuristic findings."""
+
     for index, line in enumerate(code.splitlines(), start=1):
         if re.search(pattern, line):
             return index
@@ -257,10 +395,19 @@ def line_of_match(code: str, pattern: str) -> int | None:
 
 
 def count_non_empty_lines(code: str) -> int:
+    """Simple size signal used by the mock backend for rough scoring."""
+
     return sum(1 for line in code.splitlines() if line.strip())
 
 
 def extract_json_object(text: str) -> dict[str, object]:
+    """Extract a JSON object from model output.
+
+    Real models often add code fences or a little extra prose even when asked
+    not to. This helper makes the service more tolerant of those minor format
+    slips before Pydantic validates the payload.
+    """
+
     cleaned = text.strip()
     cleaned = cleaned.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     try:
@@ -273,6 +420,19 @@ def extract_json_object(text: str) -> dict[str, object]:
 
 
 def normalize_issue_category(raw_value: object, issue: dict[str, object]) -> str:
+    """Map model-provided categories into the API's allowed category set.
+
+    Why this exists:
+        Models are great at semantics but not always great at staying inside
+        exact enum boundaries. For example, a model might say `logging` or
+        `thread-safety` even though the API contract only accepts five values.
+
+    Theory connection:
+        This is a practical production pattern from the "structured outputs"
+        discussion: use schema validation, but also add repair logic so small
+        deviations don't always become user-visible failures.
+    """
+
     value = str(raw_value or "").strip().lower().replace("_", "-")
     if value in ALLOWED_CATEGORIES:
         return value
@@ -326,6 +486,8 @@ def normalize_issue_category(raw_value: object, issue: dict[str, object]) -> str
 
 
 def normalize_issue_severity(raw_value: object, issue: dict[str, object]) -> str:
+    """Map model severities into the allowed API severity enum."""
+
     value = str(raw_value or "").strip().lower()
     if value in ALLOWED_SEVERITIES:
         return value
@@ -355,6 +517,12 @@ def normalize_issue_severity(raw_value: object, issue: dict[str, object]) -> str
 
 
 def normalize_review_payload(raw_payload: dict[str, object]) -> tuple[dict[str, object], list[str]]:
+    """Repair model output into something the public schema can accept.
+
+    The returned warnings are surfaced to the caller. That lets us preserve
+    transparency instead of silently mutating the model's answer.
+    """
+
     payload = dict(raw_payload)
     warnings: list[str] = []
 
@@ -428,6 +596,16 @@ def normalize_review_payload(raw_payload: dict[str, object]) -> tuple[dict[str, 
 
 
 def build_review_prompt(payload: ReviewRequest, guidance: list[KnowledgeHit]) -> str:
+    """Build the main review prompt.
+
+    Theory connection:
+        This is the Lab 02 prompt-engineering portion of the project:
+        - role: senior software engineer
+        - context: parsed by an application
+        - task: review code with a specific mode
+        - format: strict JSON schema
+    """
+
     guidance_block = "\n".join(
         f"- {hit.title}: {hit.excerpt}"
         for hit in guidance
@@ -464,6 +642,13 @@ def build_validation_prompt(
     draft: ReviewDraft,
     guidance: list[KnowledgeHit],
 ) -> str:
+    """Build a second-pass validation prompt.
+
+    Instead of trusting the first draft completely, we run a lightweight review
+    of the review. This is a smaller version of the "verification pass" idea
+    from agent workflow theory.
+    """
+
     guidance_block = "\n".join(f"- {hit.title}: {hit.excerpt}" for hit in guidance)
     return (
         "You are a validation reviewer checking another code review for quality.\n"
@@ -479,6 +664,8 @@ def build_validation_prompt(
 
 
 def tokenize_for_search(value: str) -> set[str]:
+    """Very small tokenizer used by the local retrieval step."""
+
     return {
         token
         for token in re.findall(r"[a-zA-Z_]{3,}", value.lower())
@@ -487,6 +674,8 @@ def tokenize_for_search(value: str) -> set[str]:
 
 
 def load_knowledge_documents() -> list[KnowledgeDocument]:
+    """Load the local review guidance corpus from disk."""
+
     if not KNOWLEDGE_BASE_PATH.exists():
         return []
     payload = json.loads(KNOWLEDGE_BASE_PATH.read_text(encoding="utf-8"))
@@ -494,6 +683,8 @@ def load_knowledge_documents() -> list[KnowledgeDocument]:
 
 
 def load_evaluation_dataset() -> list[ReviewEvalExample]:
+    """Load the bundled evaluation examples from disk."""
+
     if not DATASET_PATH.exists():
         return []
     payload = json.loads(DATASET_PATH.read_text(encoding="utf-8"))
@@ -501,10 +692,23 @@ def load_evaluation_dataset() -> list[ReviewEvalExample]:
 
 
 class KnowledgeBase:
+    """Minimal retrieval layer for the final project.
+
+    This is intentionally simple:
+    - tokenize the request
+    - score overlap against each document
+    - apply small bonuses for matching language and mode
+
+    It is not trying to be a production-grade vector store. The point is to
+    make the retrieval behavior easy to inspect and easy to explain in a demo.
+    """
+
     def __init__(self, documents: list[KnowledgeDocument]) -> None:
         self.documents = documents
 
     def search(self, payload: ReviewRequest, top_k: int = 3) -> list[KnowledgeHit]:
+        """Return the highest-scoring guidance documents for this review."""
+
         query = " ".join([payload.language, payload.review_mode, " ".join(payload.focus), payload.code])
         query_tokens = tokenize_for_search(query)
         hits: list[KnowledgeHit] = []
@@ -540,7 +744,15 @@ class KnowledgeBase:
 
 
 class MockReviewBackend(ReviewBackend):
-    """Heuristic review backend for local work, tests, and demos without API keys."""
+    """Heuristic review backend for local work, tests, and demos without API keys.
+
+    Why keep this backend:
+        The earlier labs used mock providers so development could continue even
+        without live API credentials. That is still useful here for:
+        - unit tests
+        - offline demos
+        - faster iteration on frontend and orchestration behavior
+    """
 
     def review(
         self,
@@ -548,6 +760,8 @@ class MockReviewBackend(ReviewBackend):
         state: WorkflowState,
         guidance: list[KnowledgeHit],
     ) -> ReviewDraft:
+        """Generate a deterministic review using simple code heuristics."""
+
         code = payload.code
         issues: list[Issue] = []
 
@@ -712,6 +926,8 @@ class MockReviewBackend(ReviewBackend):
         draft: ReviewDraft,
         guidance: list[KnowledgeHit],
     ) -> ReviewDraft:
+        """Clean up the heuristic draft and slightly strengthen the final output."""
+
         deduped: list[Issue] = []
         seen_descriptions: set[str] = set()
         for issue in draft.issues:
@@ -744,6 +960,14 @@ class MockReviewBackend(ReviewBackend):
 
 
 class LLMReviewBackend(ReviewBackend):
+    """Real model-backed backend using either OpenAI or Groq.
+
+    Theory connection:
+        The orchestration layer stays the same, but the worker implementation
+        changes. This separation is one of the cleanest ways to demonstrate
+        provider abstraction to a team.
+    """
+
     def __init__(self, provider: str) -> None:
         self.provider = provider
         api_key = os.getenv("OPENAI_API_KEY") if provider == "openai" else os.getenv("GROQ_API_KEY")
@@ -758,6 +982,8 @@ class LLMReviewBackend(ReviewBackend):
             self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
     def _run_prompt(self, prompt: str, state: WorkflowState | None = None) -> ReviewDraft:
+        """Run one prompt, normalize the result, and validate it against the schema."""
+
         try:
             response = self.client.responses.create(
                 model=self.model,
@@ -797,6 +1023,13 @@ class LLMReviewBackend(ReviewBackend):
 
 
 class SimpleRateLimiter:
+    """Tiny in-memory rate limiter.
+
+    This is a production-readiness nod from Module 5. It is intentionally
+    simple, but it shows that the service has a guardrail against hot-looping or
+    accidental abuse.
+    """
+
     def __init__(self, max_requests: int, window_seconds: int) -> None:
         self.max_requests = max_requests
         self.window_seconds = window_seconds
@@ -816,12 +1049,21 @@ class SimpleRateLimiter:
 
 
 class ReviewOrchestrator:
+    """Coordinates the full review workflow.
+
+    This is the heart of the final project from an architecture perspective.
+    The orchestrator is intentionally explicit so teammates can read the steps
+    in order and understand the system without guessing.
+    """
+
     def __init__(self, provider_name: str, knowledge_base: KnowledgeBase, backend: ReviewBackend) -> None:
         self.provider_name = provider_name
         self.knowledge_base = knowledge_base
         self.backend = backend
 
     def _log(self, state: WorkflowState, actor: str, event: str, detail: str, payload: dict[str, object]) -> None:
+        """Append one trace event to the workflow log."""
+
         state.activity_log.append(
             TraceEntry(
                 step=len(state.activity_log) + 1,
@@ -833,6 +1075,21 @@ class ReviewOrchestrator:
         )
 
     def run(self, payload: ReviewRequest) -> ReviewResponse:
+        """Execute the full review pipeline for one request.
+
+        Flow:
+            1. create request-scoped workflow state
+            2. retrieve grounded review guidance
+            3. generate the first structured review draft
+            4. validate / refine the draft
+            5. return final response + trace
+
+        Theory applied:
+            - Lab 03: explicit staged workflow
+            - Lab 04: retrieved context
+            - Lab 05: observable orchestration trace
+        """
+
         started_at = time.perf_counter()
         state = WorkflowState(
             request_id=str(uuid.uuid4()),
@@ -912,6 +1169,8 @@ class ReviewOrchestrator:
 
 
 def build_backend() -> tuple[str, ReviewBackend]:
+    """Instantiate the configured review backend from environment settings."""
+
     provider = normalize_provider_name(os.getenv("FINAL_PROJECT_PROVIDER", "mock"))
     if provider == "mock":
         return provider, MockReviewBackend()
@@ -921,6 +1180,13 @@ def build_backend() -> tuple[str, ReviewBackend]:
 
 
 def evaluate_examples(examples: list[ReviewEvalExample], orchestrator: ReviewOrchestrator) -> EvaluateResponse:
+    """Run the bundled or provided evaluation set through the current reviewer.
+
+    This is not a full offline benchmark. It is a lightweight "quality smoke
+    test" that helps answer a practical question:
+        "Does the reviewer usually catch the kinds of risks we expected?"
+    """
+
     results: list[EvalExampleResult] = []
     for example in examples:
         response = orchestrator.run(
@@ -998,6 +1264,8 @@ def ensure_supported_language(language: str) -> str:
 
 @app.get("/")
 def root() -> dict[str, object]:
+    """Service metadata endpoint for quick manual inspection."""
+
     return {
         "service": "final-project-code-review-bot",
         "provider": PROVIDER_NAME,
@@ -1009,6 +1277,8 @@ def root() -> dict[str, object]:
 
 @app.get("/health")
 def health() -> dict[str, object]:
+    """Health endpoint used for local checks and deployment verification."""
+
     return {
         "status": "ok",
         "provider": PROVIDER_NAME,
@@ -1020,6 +1290,15 @@ def health() -> dict[str, object]:
 @app.post("/review", response_model=ReviewResponse)
 @app.post("/api/review", response_model=ReviewResponse)
 def review_code(payload: ReviewRequest, request: Request) -> ReviewResponse:
+    """Main API route for running one code review.
+
+    The route handles:
+    - language validation
+    - rate limiting
+    - orchestration execution
+    - conversion of provider/runtime failures into HTTP errors
+    """
+
     payload = payload.model_copy(update={"language": ensure_supported_language(payload.language)})
     client_host = request.client.host if request.client else "unknown"
     RATE_LIMITER.check(client_host)
@@ -1047,6 +1326,8 @@ def review_code(payload: ReviewRequest, request: Request) -> ReviewResponse:
 @app.post("/evaluate", response_model=EvaluateResponse)
 @app.post("/api/evaluate", response_model=EvaluateResponse)
 def evaluate(payload: EvaluateRequest) -> EvaluateResponse:
+    """Run the lightweight evaluation suite and return aggregate metrics."""
+
     examples = payload.examples or DEFAULT_EVAL_DATASET
     if not examples:
         raise HTTPException(status_code=400, detail="No evaluation examples were provided.")

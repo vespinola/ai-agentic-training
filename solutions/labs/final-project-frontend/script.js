@@ -197,11 +197,11 @@ function renderEvaluation(payload) {
           <span class="metric-value">${payload.summary.example_count}</span>
         </div>
         <div class="metric-card">
-          <span class="metric-label">Avg Category Recall</span>
+          <span class="metric-label">Expected Risk Coverage</span>
           <span class="metric-value">${payload.summary.avg_category_recall}</span>
         </div>
         <div class="metric-card">
-          <span class="metric-label">Issue Count Pass Rate</span>
+          <span class="metric-label">Coverage Pass Rate</span>
           <span class="metric-value">${payload.summary.issue_count_pass_rate}</span>
         </div>
       </div>
@@ -211,9 +211,9 @@ function renderEvaluation(payload) {
         (example) => `
       <article class="result-block">
         <h3>${escapeHtml(example.id)}</h3>
-        <p class="structured-copy"><strong>Matched Categories:</strong> ${escapeHtml(example.matched_categories.join(", ") || "none")}</p>
-        <p class="structured-copy"><strong>Returned Categories:</strong> ${escapeHtml(example.returned_categories.join(", ") || "none")}</p>
-        <p class="structured-copy"><strong>Recall:</strong> ${example.category_recall}</p>
+        <p class="structured-copy"><strong>Expected Categories Found:</strong> ${escapeHtml(example.matched_categories.join(", ") || "none")}</p>
+        <p class="structured-copy"><strong>Reviewer Returned:</strong> ${escapeHtml(example.returned_categories.join(", ") || "none")}</p>
+        <p class="structured-copy"><strong>Coverage Score:</strong> ${example.category_recall}</p>
       </article>
     `
       )

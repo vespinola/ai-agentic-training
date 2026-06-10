@@ -111,6 +111,28 @@ python3 -m unittest test_main.py
 
 The tests use the default `mock` provider, so no API key is required.
 
+## Evaluation Panel
+
+The frontend includes a lightweight evaluation section that runs the bundled dataset in [evaluation_dataset.json](./evaluation_dataset.json).
+
+How to explain it in a demo:
+
+- **Examples**: how many test snippets are in the bundled dataset
+- **Expected Risk Coverage**: how often the reviewer found the expected issue categories
+- **Coverage Pass Rate**: how often the reviewer returned at least the minimum number of issues expected
+
+Per example:
+
+- **Expected Categories Found**: the expected risk types the reviewer successfully detected
+- **Reviewer Returned**: all categories the reviewer produced
+- **Coverage Score**: per-example recall against the expected categories
+
+This is intentionally a lightweight quality check, not a full benchmark. It is mainly there to show repeatable evaluation thinking from Lab 04.
+
+## Demo Assets
+
+- [demo/final-project-demo.mov](./demo/final-project-demo.mov)
+
 ## Suggested Demo Flow
 
 1. Run a `deep` review on the sample snippet

@@ -99,6 +99,7 @@ What is included:
 - retrieval-backed review guidance plus evaluation dataset
 - Lab 05-style workflow trace with `retriever`, `reviewer`, and `validator`
 - mock mode for offline testing plus OpenAI/Groq-ready provider setup
+- demo recording
 
 ## Lab 01 Quick Start
 
@@ -283,6 +284,9 @@ http://127.0.0.1:4173
 
 Final project notes and setup:
 - [solutions/labs/final-project/README.md](./solutions/labs/final-project/README.md)
+
+Final project demo assets:
+- [solutions/labs/final-project/demo/final-project-demo.mov](./solutions/labs/final-project/demo/final-project-demo.mov)
 
 ## Repository Structure
 
