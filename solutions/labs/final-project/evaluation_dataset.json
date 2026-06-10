@@ -1,0 +1,26 @@
+[
+  {
+    "id": "py-hardcoded-secret",
+    "language": "python",
+    "review_mode": "security",
+    "code": "API_KEY = \"super-secret\"\n\ndef fetch_data():\n    print(API_KEY)\n    return API_KEY\n",
+    "expected_categories": ["security", "style"],
+    "expected_min_issue_count": 2
+  },
+  {
+    "id": "py-mutable-default",
+    "language": "python",
+    "review_mode": "general",
+    "code": "def add_item(item, bucket=[]):\n    bucket.append(item)\n    return bucket\n",
+    "expected_categories": ["bug"],
+    "expected_min_issue_count": 1
+  },
+  {
+    "id": "js-sql-concat",
+    "language": "javascript",
+    "review_mode": "deep",
+    "code": "function loadUser(db, userId) {\n  const query = \"SELECT * FROM users WHERE id = \" + userId;\n  console.log(query);\n  return db.query(query);\n}\n",
+    "expected_categories": ["security", "style"],
+    "expected_min_issue_count": 2
+  }
+]

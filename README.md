@@ -88,6 +88,18 @@ What is included:
 - student fast-track notes
 - demo recording
 
+### Final Project: AI Code Review Bot
+
+- [solutions/labs/final-project](./solutions/labs/final-project)
+- [solutions/labs/final-project-frontend](./solutions/labs/final-project-frontend)
+
+What is included:
+- Render-ready FastAPI backend scaffold
+- Vercel-ready frontend scaffold
+- retrieval-backed review guidance plus evaluation dataset
+- Lab 05-style workflow trace with `retriever`, `reviewer`, and `validator`
+- mock mode for offline testing plus OpenAI/Groq-ready provider setup
+
 ## Lab 01 Quick Start
 
 ```bash
@@ -244,6 +256,34 @@ Lab 05 demo assets:
 - [solutions/labs/lab05-multi-agent/demo/lab05-demo.gif](./solutions/labs/lab05-multi-agent/demo/lab05-demo.gif)
 - [solutions/labs/lab05-multi-agent/demo/lab05-demo.mov](./solutions/labs/lab05-multi-agent/demo/lab05-demo.mov)
 
+## Final Project Quick Start
+
+Backend:
+
+```bash
+cd solutions/labs/final-project
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+Frontend:
+
+```bash
+cd solutions/labs/final-project-frontend
+python3 -m http.server 4173
+```
+
+Then open:
+
+```text
+http://127.0.0.1:4173
+```
+
+Final project notes and setup:
+- [solutions/labs/final-project/README.md](./solutions/labs/final-project/README.md)
+
 ## Repository Structure
 
 ```text
@@ -263,3 +303,4 @@ Lab 05 demo assets:
 - Lab 03 migration workflow agent: done
 - Lab 04 RAG system with evaluation: done
 - Lab 05 multi-agent orchestration: done
+- Final project code review bot: done

@@ -1,0 +1,65 @@
+[
+  {
+    "id": "python-secrets",
+    "title": "Python secret management",
+    "category": "security",
+    "body": "Do not store passwords, tokens, or API keys directly in source code. Read them from environment variables or a secret manager and avoid logging sensitive values.",
+    "languages": ["python"],
+    "modes": ["security", "deep", "general"],
+    "keywords": ["secret", "password", "token", "api_key", "env"]
+  },
+  {
+    "id": "js-input-validation",
+    "title": "JavaScript input validation boundaries",
+    "category": "security",
+    "body": "Validate request parameters and body data as early as possible. Treat all client input as untrusted and avoid building SQL or shell commands with string concatenation.",
+    "languages": ["javascript", "typescript"],
+    "modes": ["security", "deep", "general"],
+    "keywords": ["req", "request", "sql", "input", "validation", "params"]
+  },
+  {
+    "id": "performance-hot-paths",
+    "title": "Performance hotspots",
+    "category": "performance",
+    "body": "Look for nested loops, repeated scans, or repeated I/O inside loops. Cache repeated work when possible and measure before optimizing.",
+    "languages": ["python", "swift", "kotlin", "javascript", "typescript", "java", "go", "ruby", "csharp", "cpp"],
+    "modes": ["performance", "deep", "general"],
+    "keywords": ["loop", "cache", "performance", "nested", "scan"]
+  },
+  {
+    "id": "maintainability-large-functions",
+    "title": "Large function maintainability",
+    "category": "maintainability",
+    "body": "Large routines often combine multiple responsibilities. Smaller units improve readability, testing, and safer refactoring.",
+    "languages": ["python", "swift", "kotlin", "javascript", "typescript", "java", "go", "ruby", "csharp", "cpp"],
+    "modes": ["general", "deep"],
+    "keywords": ["function", "class", "readability", "testability", "refactor"]
+  },
+  {
+    "id": "logging-discipline",
+    "title": "Logging discipline",
+    "category": "style",
+    "body": "Prefer structured logging over print statements or console.log in production code. Logs should provide debugging value without leaking secrets.",
+    "languages": ["python", "swift", "kotlin", "javascript", "typescript", "java", "go", "ruby", "csharp", "cpp"],
+    "modes": ["general", "security", "deep"],
+    "keywords": ["print", "console", "logging", "debug"]
+  },
+  {
+    "id": "python-mutable-defaults",
+    "title": "Python mutable default arguments",
+    "category": "bug",
+    "body": "Default list or dict arguments are shared across calls. Use None defaults and initialize mutable objects inside the function body.",
+    "languages": ["python"],
+    "modes": ["general", "deep"],
+    "keywords": ["python", "default", "list", "dict", "mutable"]
+  },
+  {
+    "id": "sql-parameterization",
+    "title": "Parameterized SQL",
+    "category": "security",
+    "body": "Queries should be parameterized instead of concatenating user-controlled strings. This protects against injection and often improves query handling.",
+    "languages": ["python", "javascript", "typescript", "java", "go", "ruby", "csharp"],
+    "modes": ["security", "deep"],
+    "keywords": ["sql", "query", "parameterized", "injection"]
+  }
+]

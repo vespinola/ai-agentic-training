@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Final Project · AI Code Review Bot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="hero-card">
+        <p class="eyebrow">Final Project · Option A · Portfolio Upgrade</p>
+        <h1>Code Review Control Room</h1>
+        <p class="hero-copy">
+          Review code with a traceable workflow: guidance retrieval, structured review, validation,
+          and a lightweight evaluation panel inspired by Labs 02, 04, and 05.
+        </p>
+      </section>
+
+      <section class="workspace">
+        <form id="review-form" class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>1. Submit Code</h2>
+              <p>Choose a language, select the review depth, then paste code or load a local file.</p>
+            </div>
+            <button id="load-sample-btn" class="secondary-button" type="button">Load Sample</button>
+          </div>
+
+          <label class="field">
+            <span>Code</span>
+            <textarea
+              id="code-input"
+              rows="15"
+              placeholder="Paste Python or JavaScript code here..."
+            ></textarea>
+          </label>
+
+          <div class="inline-grid">
+            <label class="field">
+              <span>Language</span>
+              <select id="language-select">
+                <option value="python" selected>Python</option>
+                <option value="swift">Swift</option>
+                <option value="kotlin">Kotlin</option>
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="java">Java</option>
+                <option value="go">Go</option>
+                <option value="ruby">Ruby</option>
+                <option value="csharp">C#</option>
+                <option value="cpp">C++</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Review Mode</span>
+              <select id="review-mode-select">
+                <option value="general">General</option>
+                <option value="security">Security</option>
+                <option value="performance">Performance</option>
+                <option value="deep" selected>Deep</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Focus Tags</span>
+              <input id="focus-input" type="text" placeholder="security, logging, validation" />
+              <small class="field-help">Optional comma-separated hints for the review workflow.</small>
+            </label>
+          </div>
+
+          <div class="action-row">
+            <label class="file-button" for="file-input">Load File</label>
+            <input id="file-input" type="file" hidden />
+            <button id="review-btn" type="submit">Run Review</button>
+            <p id="review-status" class="status"></p>
+          </div>
+        </form>
+
+        <section class="panel panel-tight">
+          <div class="block-header">
+            <h2>2. Workflow Snapshot</h2>
+            <span id="provider-badge" class="provider-badge">Provider pending</span>
+          </div>
+          <div id="summary-empty" class="empty-state">
+            Run a review to see guidance retrieval, structured findings, and validation.
+          </div>
+          <div id="summary-grid" class="summary-grid hidden"></div>
+        </section>
+
+        <section class="panel panel-tight">
+          <h2>3. Guidance Hits</h2>
+          <div id="guidance-output" class="guidance-output">
+            <div class="empty-state">No guidance retrieved yet.</div>
+          </div>
+        </section>
+
+        <section class="panel panel-tight">
+          <h2>4. Activity Trace</h2>
+          <div id="activity-output" class="activity-output"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>5. Evaluation Suite</h2>
+              <p>Run the bundled sample dataset to show grounded review coverage in your demo.</p>
+            </div>
+            <button id="evaluate-btn" class="secondary-button" type="button">Run Evaluation</button>
+          </div>
+          <div id="eval-summary" class="empty-state">
+            The bundled dataset has not been evaluated yet.
+          </div>
+          <div id="eval-results" class="result-stack hidden"></div>
+        </section>
+      </section>
+
+      <section class="panel result-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>6. Final Review</h2>
+            <p>Structured findings, practical suggestions, and metrics ready for the final presentation.</p>
+          </div>
+        </div>
+
+        <div id="result-empty" class="empty-state">
+          Review results will appear here after the workflow completes.
+        </div>
+
+        <div id="result-content" class="result-stack hidden">
+          <article class="result-block">
+            <h3>Summary</h3>
+            <p id="summary-text" class="structured-copy"></p>
+          </article>
+
+          <div class="results-grid">
+            <article class="result-block">
+              <h3>Issues</h3>
+              <ul id="issues-list" class="issues-list"></ul>
+            </article>
+
+            <article class="result-block">
+              <h3>Metrics</h3>
+              <div id="metrics-grid" class="metrics-grid"></div>
+            </article>
+          </div>
+
+          <div class="results-grid">
+            <article class="result-block">
+              <h3>Suggestions</h3>
+              <ul id="suggestions-list" class="structured-list"></ul>
+            </article>
+
+            <article class="result-block">
+              <h3>Warnings</h3>
+              <ul id="warnings-list" class="structured-list"></ul>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./config.js"></script>
+    <script src="./script.js"></script>
+  </body>
+</html>
