@@ -60,6 +60,8 @@ SUPPORTED_LANGUAGES = {
     "csharp",
     "cpp",
 }
+ALLOWED_CATEGORIES = {"bug", "security", "performance", "style", "maintainability"}
+ALLOWED_SEVERITIES = {"critical", "high", "medium", "low"}
 BASE_DIR = Path(__file__).resolve().parent
 KNOWLEDGE_BASE_PATH = BASE_DIR / "review_knowledge_base.json"
 DATASET_PATH = BASE_DIR / "evaluation_dataset.json"
@@ -268,6 +270,161 @@ def extract_json_object(text: str) -> dict[str, object]:
         if not match:
             raise ValueError("Model did not return valid JSON.")
         return json.loads(match.group(0))
+
+
+def normalize_issue_category(raw_value: object, issue: dict[str, object]) -> str:
+    value = str(raw_value or "").strip().lower().replace("_", "-")
+    if value in ALLOWED_CATEGORIES:
+        return value
+
+    category_aliases = {
+        "correctness": "bug",
+        "logic": "bug",
+        "logic-error": "bug",
+        "error-handling": "bug",
+        "thread-safety": "bug",
+        "concurrency": "bug",
+        "race-condition": "bug",
+        "safety": "security",
+        "auth": "security",
+        "authentication": "security",
+        "authorization": "security",
+        "privacy": "security",
+        "injection": "security",
+        "validation": "security",
+        "input-validation": "security",
+        "speed": "performance",
+        "efficiency": "performance",
+        "optimization": "performance",
+        "complexity": "performance",
+        "readability": "style",
+        "formatting": "style",
+        "naming": "style",
+        "logging": "style",
+        "best-practices": "maintainability",
+        "design": "maintainability",
+        "architecture": "maintainability",
+        "testability": "maintainability",
+        "threading": "maintainability",
+    }
+    if value in category_aliases:
+        return category_aliases[value]
+
+    text = " ".join(
+        str(issue.get(field, "") or "")
+        for field in ("category", "description", "suggestion")
+    ).lower()
+    if any(token in text for token in {"secret", "token", "auth", "validate", "trust boundary", "sql", "injection"}):
+        return "security"
+    if any(token in text for token in {"loop", "hot path", "cache", "slow", "performance", "optimiz", "memory"}):
+        return "performance"
+    if any(token in text for token in {"print", "logging", "readability", "naming", "style"}):
+        return "style"
+    if any(token in text for token in {"refactor", "maintain", "coupling", "responsibility", "test"}):
+        return "maintainability"
+    return "bug"
+
+
+def normalize_issue_severity(raw_value: object, issue: dict[str, object]) -> str:
+    value = str(raw_value or "").strip().lower()
+    if value in ALLOWED_SEVERITIES:
+        return value
+
+    severity_aliases = {
+        "blocker": "critical",
+        "severe": "high",
+        "warning": "medium",
+        "minor": "low",
+        "info": "low",
+        "informational": "low",
+    }
+    if value in severity_aliases:
+        return severity_aliases[value]
+
+    text = " ".join(
+        str(issue.get(field, "") or "")
+        for field in ("severity", "description", "suggestion")
+    ).lower()
+    if any(token in text for token in {"secret", "injection", "remote code", "arbitrary code", "credential"}):
+        return "critical"
+    if any(token in text for token in {"unsafe", "race condition", "data corruption", "security"}):
+        return "high"
+    if any(token in text for token in {"performance", "maintainability", "complexity"}):
+        return "medium"
+    return "low"
+
+
+def normalize_review_payload(raw_payload: dict[str, object]) -> tuple[dict[str, object], list[str]]:
+    payload = dict(raw_payload)
+    warnings: list[str] = []
+
+    issues = payload.get("issues")
+    if isinstance(issues, list):
+        normalized_issues: list[dict[str, object]] = []
+        for item in issues:
+            if not isinstance(item, dict):
+                continue
+            normalized = dict(item)
+            normalized_category = normalize_issue_category(normalized.get("category"), normalized)
+            if normalized.get("category") != normalized_category:
+                warnings.append(
+                    f"Normalized model category '{normalized.get('category')}' to '{normalized_category}'."
+                )
+            normalized["category"] = normalized_category
+
+            normalized_severity = normalize_issue_severity(normalized.get("severity"), normalized)
+            if normalized.get("severity") != normalized_severity:
+                warnings.append(
+                    f"Normalized model severity '{normalized.get('severity')}' to '{normalized_severity}'."
+                )
+            normalized["severity"] = normalized_severity
+
+            line = normalized.get("line")
+            if line in {"", 0, "0"}:
+                normalized["line"] = None
+            normalized_issues.append(normalized)
+        payload["issues"] = normalized_issues
+
+    metrics = payload.get("metrics")
+    if isinstance(metrics, dict):
+        normalized_metrics = dict(metrics)
+        try:
+            score = int(normalized_metrics.get("overall_score", 7))
+        except (TypeError, ValueError):
+            score = 7
+            warnings.append("Normalized invalid overall_score to default value 7.")
+        normalized_metrics["overall_score"] = min(10, max(1, score))
+
+        complexity = str(normalized_metrics.get("complexity", "medium")).strip().lower()
+        if complexity not in {"low", "medium", "high"}:
+            normalized_metrics["complexity"] = "medium"
+            warnings.append(f"Normalized invalid complexity '{complexity}' to 'medium'.")
+
+        maintainability = str(normalized_metrics.get("maintainability", "good")).strip().lower()
+        maintainability_aliases = {
+            "low": "poor",
+            "medium": "fair",
+            "high": "strong",
+            "excellent": "strong",
+            "average": "fair",
+        }
+        normalized_metrics["maintainability"] = maintainability_aliases.get(maintainability, maintainability)
+        if normalized_metrics["maintainability"] not in {"poor", "fair", "good", "strong"}:
+            normalized_metrics["maintainability"] = "good"
+            warnings.append(f"Normalized invalid maintainability '{maintainability}' to 'good'.")
+
+        confidence = str(normalized_metrics.get("confidence", "medium")).strip().lower()
+        if confidence not in {"low", "medium", "high"}:
+            normalized_metrics["confidence"] = "medium"
+            warnings.append(f"Normalized invalid confidence '{confidence}' to 'medium'.")
+        payload["metrics"] = normalized_metrics
+
+    if not isinstance(payload.get("suggestions"), list):
+        payload["suggestions"] = []
+    if not isinstance(payload.get("confidence_notes"), list):
+        payload["confidence_notes"] = []
+
+    return payload, warnings
 
 
 def build_review_prompt(payload: ReviewRequest, guidance: list[KnowledgeHit]) -> str:
@@ -600,7 +757,7 @@ class LLMReviewBackend(ReviewBackend):
             self.client = OpenAI(api_key=api_key)
             self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
-    def _run_prompt(self, prompt: str) -> ReviewDraft:
+    def _run_prompt(self, prompt: str, state: WorkflowState | None = None) -> ReviewDraft:
         try:
             response = self.client.responses.create(
                 model=self.model,
@@ -614,7 +771,12 @@ class LLMReviewBackend(ReviewBackend):
 
         text = response.output_text
         payload = extract_json_object(text)
-        return ReviewDraft.model_validate(payload)
+        normalized_payload, warnings = normalize_review_payload(payload)
+        if state is not None and warnings:
+            for warning in warnings:
+                if warning not in state.warnings:
+                    state.warnings.append(warning)
+        return ReviewDraft.model_validate(normalized_payload)
 
     def review(
         self,
@@ -622,7 +784,7 @@ class LLMReviewBackend(ReviewBackend):
         state: WorkflowState,
         guidance: list[KnowledgeHit],
     ) -> ReviewDraft:
-        return self._run_prompt(build_review_prompt(payload, guidance))
+        return self._run_prompt(build_review_prompt(payload, guidance), state)
 
     def validate(
         self,
@@ -631,7 +793,7 @@ class LLMReviewBackend(ReviewBackend):
         draft: ReviewDraft,
         guidance: list[KnowledgeHit],
     ) -> ReviewDraft:
-        return self._run_prompt(build_validation_prompt(payload, draft, guidance))
+        return self._run_prompt(build_validation_prompt(payload, draft, guidance), state)
 
 
 class SimpleRateLimiter:

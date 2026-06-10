@@ -2,7 +2,7 @@ import unittest
 
 from fastapi.testclient import TestClient
 
-from main import app
+from main import app, normalize_review_payload
 
 
 class FinalProjectApiTests(unittest.TestCase):
@@ -49,6 +49,41 @@ class FinalProjectApiTests(unittest.TestCase):
         payload = response.json()
         self.assertGreaterEqual(payload["summary"]["example_count"], 1)
         self.assertTrue(payload["examples"])
+
+    def test_normalize_review_payload_maps_unknown_issue_categories(self) -> None:
+        normalized, warnings = normalize_review_payload(
+            {
+                "summary": "Test",
+                "issues": [
+                    {
+                        "severity": "medium",
+                        "line": 10,
+                        "category": "logging",
+                        "description": "Uses print statements for debug output.",
+                        "suggestion": "Use a logging framework.",
+                    },
+                    {
+                        "severity": "high",
+                        "line": 12,
+                        "category": "thread-safety",
+                        "description": "Shared mutable state may create concurrency bugs.",
+                        "suggestion": "Protect access to shared state.",
+                    },
+                ],
+                "suggestions": [],
+                "metrics": {
+                    "overall_score": 7,
+                    "complexity": "medium",
+                    "maintainability": "good",
+                    "confidence": "high",
+                },
+                "confidence_notes": [],
+            }
+        )
+
+        self.assertEqual(normalized["issues"][0]["category"], "style")
+        self.assertEqual(normalized["issues"][1]["category"], "bug")
+        self.assertTrue(warnings)
 
 
 if __name__ == "__main__":
